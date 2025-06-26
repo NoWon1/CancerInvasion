@@ -10,8 +10,6 @@
       <Steps>1800</Steps>
       <Temperature>10.0</Temperature>
       <NeighborOrder>1</NeighborOrder>
-      <Boundary_x>Periodic</Boundary_x>
-      <Boundary_y>Periodic</Boundary_y>
    </Potts>
    
    <Plugin Name="CellType">
@@ -21,11 +19,11 @@
    </Plugin>
    
    <Plugin Name="Volume">
-      <VolumeEnergyParameters CellType="Cell" LambdaVolume="10.0" TargetVolume="100"/>
+      <VolumeEnergyParameters CellType="Cell" LambdaVolume="2.0" TargetVolume="100"/>
    </Plugin>
    
    <Plugin Name="Surface">
-      <SurfaceEnergyParameters CellType="Cell" LambdaSurface="5.0" TargetSurface="35"/>
+      <SurfaceEnergyParameters CellType="Cell" LambdaSurface="1.0" TargetSurface="35"/>
    </Plugin>
    
    <Plugin Name="Contact">
@@ -40,6 +38,8 @@
    
    <Plugin Name="CenterOfMass"/>
    
+   <Plugin Name="NeighborTracker"/>
+   
    <Plugin Name="Secretion"/>
    
    <Steppable Type="DiffusionSolverFE">
@@ -50,7 +50,6 @@
             <DecayConstant>0.01</DecayConstant>
          </DiffusionData>
       </DiffusionField>
-      <ExtraTimesPerMC>10</ExtraTimesPerMC>
    </Steppable>
    
 </CompuCell3D>
