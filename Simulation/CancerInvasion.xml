@@ -1,0 +1,56 @@
+<CompuCell3D Revision="20190101" Version="4.2.5">
+   
+   <Metadata>
+      <NumberOfProcessors>1</NumberOfProcessors>
+      <DebugOutputFrequency>100</DebugOutputFrequency>
+   </Metadata>
+   
+   <Potts>
+      <Dimensions x="500" y="500" z="1"/>
+      <Steps>1800</Steps>
+      <Temperature>10.0</Temperature>
+      <NeighborOrder>1</NeighborOrder>
+      <Boundary_x>Periodic</Boundary_x>
+      <Boundary_y>Periodic</Boundary_y>
+   </Potts>
+   
+   <Plugin Name="CellType">
+      <CellType TypeId="0" TypeName="Medium"/>
+      <CellType TypeId="1" TypeName="Cell"/>
+      <CellType TypeId="2" TypeName="ECM"/>
+   </Plugin>
+   
+   <Plugin Name="Volume">
+      <VolumeEnergyParameters CellType="Cell" LambdaVolume="10.0" TargetVolume="100"/>
+   </Plugin>
+   
+   <Plugin Name="Surface">
+      <SurfaceEnergyParameters CellType="Cell" LambdaSurface="5.0" TargetSurface="35"/>
+   </Plugin>
+   
+   <Plugin Name="Contact">
+      <Energy Type1="Medium" Type2="Medium">0</Energy>
+      <Energy Type1="Medium" Type2="Cell">16</Energy>
+      <Energy Type1="Medium" Type2="ECM">0</Energy>
+      <Energy Type1="Cell" Type2="Cell">8</Energy>
+      <Energy Type1="Cell" Type2="ECM">12</Energy>
+      <Energy Type1="ECM" Type2="ECM">0</Energy>
+      <NeighborOrder>1</NeighborOrder>
+   </Plugin>
+   
+   <Plugin Name="CenterOfMass"/>
+   
+   <Plugin Name="Secretion"/>
+   
+   <Steppable Type="DiffusionSolverFE">
+      <DiffusionField Name="MMP">
+         <DiffusionData>
+            <FieldName>MMP</FieldName>
+            <DiffusionConstant>0.1</DiffusionConstant>
+            <DecayConstant>0.01</DecayConstant>
+         </DiffusionData>
+      </DiffusionField>
+      <ExtraTimesPerMC>10</ExtraTimesPerMC>
+   </Steppable>
+   
+</CompuCell3D>
