@@ -1,345 +1,363 @@
 from cc3d.core.PySteppables import *
-from cc3d import CompuCellSetup
 import numpy as np
 import random
 import math
 
-class CancerInvasionMainSteppable(SteppableBasePy):
+class CancerInvasionSteppable(SteppableBasePy):
     def __init__(self, frequency=1):
         SteppableBasePy.__init__(self, frequency)
-        self.track_cell_level_scalar_attribute(field_name='polarity_x', attribute_name='polarity_x')
-        self.track_cell_level_scalar_attribute(field_name='polarity_y', attribute_name='polarity_y')
         
-        # Simulation parameters
-        self.fiber_count = 600
-        self.mmp_secretion_rate = 0.05
-        self.polarity_memory = 10
-        self.degradation_threshold = 1.0
+        # Simulation parameters - reduced for stability
+        self.fiber_count = 400  # Reduced from 600
+        self.fiber_length = 12  # Reduced from 18
+        self.mmp_secretion_rate = 0.02  # Reduced from 0.05
+        self.polarity_memory = 5  # Reduced from 10
+        self.degradation_threshold = 0.5  # Reduced from 1.0
         
-        # Tracking dictionaries
+        # Simple tracking without PixelTracker dependency
         self.cell_positions = {}
-        self.cell_displacements = {}
+        self.cell_velocities = {}
         self.initial_positions = {}
-        self.ecm_pixels = {}  # Track ECM pixels manually
-        self.output_file = None
+        self.fiber_locations = set()  # Track fiber pixels directly
+        self.step_count = 0
+        
+        # Error handling flags
+        self.simulation_failed = False
+        self.error_count = 0
+        self.max_errors = 10
         
     def start(self):
-        """Initialize simulation components"""
-        print("Starting Cancer Invasion Simulation...")
-        
+        """Initialize simulation with comprehensive error handling"""
         try:
-            # Initialize data collection
-            self.output_file = open("invasion_data.csv", "w")
-            self.output_file.write("MCS,CellID,X,Y,NetTranslocation,CellCount,ECMCount\n")
+            print("=== Starting Stable Cancer Invasion Simulation ===")
+            
+            # Clear any existing cells safely
+            cell_list_copy = list(self.cell_list)
+            for cell in cell_list_copy:
+                try:
+                    self.safe_cell_removal(cell)
+                except Exception as e:
+                    print(f"Warning during initial cleanup: {e}")
+            
+            # Initialize ECM network
+            self.initialize_stable_ecm()
+            
+            # Initialize cancer cells
+            self.initialize_stable_cells()
+            
+            # Initialize tracking
+            self.initialize_tracking()
+            
+            print(f"Initialization successful!")
+            print(f"Cancer cells: {len([c for c in self.cell_list if c.type == self.CELL])}")
+            print(f"ECM fibers: {len([c for c in self.cell_list if c.type == self.ECMFIBER])}")
+            print(f"Fiber pixels tracked: {len(self.fiber_locations)}")
+            
         except Exception as e:
-            print(f"Warning: Could not create output file: {e}")
-        
-        # Clear any existing cells
-        for cell in self.cell_list:
-            try:
-                # Manual pixel clearing instead of delete_cell
-                pixels_to_clear = []
-                for x in range(self.dim.x):
-                    for y in range(self.dim.y):
-                        if self.cell_field[x, y, 0] == cell:
-                            pixels_to_clear.append((x, y))
-                
-                for x, y in pixels_to_clear:
-                    self.cell_field[x, y, 0] = None
-                    
-            except Exception as e:
-                print(f"Warning during cell clearing: {e}")
+            print(f"CRITICAL ERROR during initialization: {e}")
+            self.simulation_failed = True
             
-        # Initialize ECM fibers first
-        self.initialize_ecm()
-        
-        # Then initialize cells
-        self.initialize_cells()
-        
-        print(f"Initialization complete.")
-        print(f"Cancer cells: {len([c for c in self.cell_list if c.type == self.CELL])}")
-        print(f"ECM fibers: {len([c for c in self.cell_list if c.type == self.ECM])}")
-        
-    def initialize_ecm(self):
-        """Initialize ECM fibers with manual pixel tracking"""
-        print("Initializing ECM fibers...")
-        random.seed(42)
-        
-        fiber_length = 15
-        fibers_created = 0
-        
-        for fiber_id in range(self.fiber_count):
-            # Random starting position (avoid edges)
-            start_x = random.randint(50, 449)
-            start_y = random.randint(50, 449)
-            
-            # Random orientation
-            angle = random.uniform(0, 2 * math.pi)
-            
-            # Create fiber
-            fiber_pixels = []
-            for i in range(fiber_length):
-                x = int(start_x + i * math.cos(angle))
-                y = int(start_y + i * math.sin(angle))
-                
-                if 50 <= x < 450 and 50 <= y < 450:
-                    if self.cell_field[x, y, 0] is None:
-                        fiber_pixels.append((x, y))
-            
-            # Only create fiber if we have enough pixels
-            if len(fiber_pixels) >= 5:
-                ecm_cell = self.new_cell(self.ECM)
-                self.ecm_pixels[ecm_cell.id] = []
-                
-                for x, y in fiber_pixels:
-                    self.cell_field[x, y, 0] = ecm_cell
-                    self.ecm_pixels[ecm_cell.id].append((x, y))
-                    
-                fibers_created += 1
-                
-        print(f"Created {fibers_created} ECM fibers")
-        
-    def initialize_cells(self):
-        """Initialize cancer cells in central cluster"""
-        print("Initializing cancer cells...")
-        center_x, center_y = 250, 250
-        initial_radius = 50
-        
-        cell_count = 0
-        target_cells = 69
-        
-        for radius in range(0, initial_radius, 12):
-            if cell_count >= target_cells:
-                break
-                
-            if radius == 0:
-                # Central cell
-                cell = self.create_single_cell(center_x, center_y)
-                if cell:
-                    cell_count += 1
-            else:
-                # Ring of cells
-                circumference = 2 * math.pi * radius
-                cells_in_ring = max(1, int(circumference / 15))
-                
-                for i in range(cells_in_ring):
-                    if cell_count >= target_cells:
-                        break
-                        
-                    angle = 2 * math.pi * i / cells_in_ring
-                    x = int(center_x + radius * math.cos(angle))
-                    y = int(center_y + radius * math.sin(angle))
-                    
-                    cell = self.create_single_cell(x, y)
-                    if cell:
-                        cell_count += 1
-                    
-        print(f"Created {cell_count} cancer cells")
-        
-    def create_single_cell(self, center_x, center_y):
-        """Create a single cell at specified location"""
-        cell = self.new_cell(self.CELL)
-        
-        # Create circular cell
-        cell_radius = 6
-        pixels_added = 0
-        
-        for dx in range(-cell_radius, cell_radius + 1):
-            for dy in range(-cell_radius, cell_radius + 1):
-                if dx*dx + dy*dy <= cell_radius*cell_radius:
-                    px, py = center_x + dx, center_y + dy
-                    if 0 <= px < 500 and 0 <= py < 500:
-                        current_cell = self.cell_field[px, py, 0]
-                        if current_cell is None:
-                            self.cell_field[px, py, 0] = cell
-                            pixels_added += 1
-                            
-        # Initialize cell tracking
-        if pixels_added > 0:
-            self.cell_positions[cell.id] = [cell.xCOM, cell.yCOM]
-            self.cell_displacements[cell.id] = []
-            self.initial_positions[cell.id] = [cell.xCOM, cell.yCOM]
-            cell.dict['polarity_x'] = 0.0
-            cell.dict['polarity_y'] = 0.0
-            return cell
-        else:
-            # Manual removal instead of delete_cell
-            try:
-                for x in range(self.dim.x):
-                    for y in range(self.dim.y):
+    def safe_cell_removal(self, cell):
+        """Safely remove cell without PixelTracker dependency"""
+        try:
+            # Manual pixel clearing
+            pixels_cleared = 0
+            for x in range(self.dim.x):
+                for y in range(self.dim.y):
+                    try:
                         if self.cell_field[x, y, 0] == cell:
                             self.cell_field[x, y, 0] = None
-            except:
-                pass
-            return None
+                            pixels_cleared += 1
+                    except:
+                        continue
+            return pixels_cleared > 0
+        except Exception as e:
+            print(f"Error in safe_cell_removal: {e}")
+            return False
+            
+    def initialize_stable_ecm(self):
+        """Create stable ECM fiber network"""
+        try:
+            print("Creating stable ECM network...")
+            random.seed(42)
+            
+            fibers_created = 0
+            max_attempts = self.fiber_count * 2
+            
+            for attempt in range(max_attempts):
+                if fibers_created >= self.fiber_count:
+                    break
+                    
+                # Generate fiber with safety checks
+                start_x = random.randint(100, 399)
+                start_y = random.randint(100, 399)
+                angle = random.uniform(0, 2 * math.pi)
+                
+                # Create simple linear fiber
+                fiber_pixels = self.create_simple_fiber(start_x, start_y, angle)
+                
+                if len(fiber_pixels) >= 8:
+                    fiber_cell = self.new_cell(self.ECMFIBER)
+                    pixels_assigned = 0
+                    
+                    for x, y in fiber_pixels:
+                        try:
+                            if self.cell_field[x, y, 0] is None:
+                                self.cell_field[x, y, 0] = fiber_cell
+                                self.fiber_locations.add((x, y))
+                                pixels_assigned += 1
+                        except:
+                            continue
+                    
+                    if pixels_assigned >= 8:
+                        fibers_created += 1
+                    else:
+                        self.safe_cell_removal(fiber_cell)
+            
+            print(f"Created {fibers_created} stable ECM fibers")
+            
+        except Exception as e:
+            print(f"Error in ECM initialization: {e}")
+            self.error_count += 1
+            
+    def create_simple_fiber(self, start_x, start_y, angle):
+        """Create simple connected fiber pixels"""
+        pixels = []
+        try:
+            dx = math.cos(angle)
+            dy = math.sin(angle)
+            
+            for i in range(self.fiber_length):
+                x = int(start_x + i * dx)
+                y = int(start_y + i * dy)
+                
+                if 50 <= x < 450 and 50 <= y < 450:
+                    pixels.append((x, y))
+                    # Add slight thickness
+                    for offset in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                        nx, ny = x + offset[0], y + offset[1]
+                        if 50 <= nx < 450 and 50 <= ny < 450:
+                            if (nx, ny) not in pixels:
+                                pixels.append((nx, ny))
+                                
+        except Exception as e:
+            print(f"Error creating fiber: {e}")
+            
+        return pixels
+        
+    def initialize_stable_cells(self):
+        """Create stable cancer cell cluster"""
+        try:
+            print("Creating stable cancer cell cluster...")
+            center_x, center_y = 250, 250
+            target_cells = 50  # Reduced for stability
+            
+            cells_created = 0
+            
+            # Create compact central cluster
+            for radius in range(0, 40, 10):
+                if cells_created >= target_cells:
+                    break
+                    
+                if radius == 0:
+                    # Central cell
+                    if self.create_stable_cell(center_x, center_y):
+                        cells_created += 1
+                else:
+                    # Ring of cells
+                    circumference = 2 * math.pi * radius
+                    cells_in_ring = max(1, int(circumference / 12))
+                    
+                    for i in range(cells_in_ring):
+                        if cells_created >= target_cells:
+                            break
+                            
+                        angle = 2 * math.pi * i / cells_in_ring
+                        x = int(center_x + radius * math.cos(angle))
+                        y = int(center_y + radius * math.sin(angle))
+                        
+                        if self.create_stable_cell(x, y):
+                            cells_created += 1
+            
+            print(f"Created {cells_created} stable cancer cells")
+            
+        except Exception as e:
+            print(f"Error in cell initialization: {e}")
+            self.error_count += 1
+            
+    def create_stable_cell(self, center_x, center_y):
+        """Create single stable cancer cell"""
+        try:
+            cell = self.new_cell(self.CELL)
+            cell_radius = 5  # Smaller for stability
+            pixels_added = 0
+            
+            for dx in range(-cell_radius, cell_radius + 1):
+                for dy in range(-cell_radius, cell_radius + 1):
+                    if dx*dx + dy*dy <= cell_radius*cell_radius:
+                        px, py = center_x + dx, center_y + dy
+                        if 0 <= px < 500 and 0 <= py < 500:
+                            try:
+                                if self.cell_field[px, py, 0] is None:
+                                    self.cell_field[px, py, 0] = cell
+                                    pixels_added += 1
+                            except:
+                                continue
+            
+            if pixels_added >= 20:  # Minimum viable cell
+                return True
+            else:
+                self.safe_cell_removal(cell)
+                return False
+                
+        except Exception as e:
+            print(f"Error creating cell: {e}")
+            return False
+            
+    def initialize_tracking(self):
+        """Initialize cell tracking systems"""
+        try:
+            for cell in self.cell_list:
+                if cell.type == self.CELL:
+                    self.cell_positions[cell.id] = [cell.xCOM, cell.yCOM]
+                    self.cell_velocities[cell.id] = []
+                    self.initial_positions[cell.id] = [cell.xCOM, cell.yCOM]
+                    
+        except Exception as e:
+            print(f"Error in tracking initialization: {e}")
+            self.error_count += 1
             
     def step(self, mcs):
-        """Main simulation step"""
-        if mcs % 100 == 0:
-            cancer_cells = [c for c in self.cell_list if c.type == self.CELL]
-            ecm_cells = [c for c in self.cell_list if c.type == self.ECM]
-            print(f"Step {mcs}, Cancer cells: {len(cancer_cells)}, ECM cells: {len(ecm_cells)}")
-            
-        # Update cell polarity
-        self.update_cell_polarity()
-        
-        # Handle MMP secretion and ECM degradation
-        self.handle_mmp_dynamics()
-        
-        # Collect data
-        if mcs % 10 == 0:
-            self.collect_data(mcs)
-            
-    def update_cell_polarity(self):
-        """Update cell polarity based on movement history"""
-        for cell in self.cell_list:
-            if cell.type == self.CELL:
-                current_pos = [cell.xCOM, cell.yCOM]
+        """Main simulation step with error handling"""
+        try:
+            if self.simulation_failed or self.error_count >= self.max_errors:
+                print("Simulation halted due to errors")
+                return
                 
-                if cell.id in self.cell_positions:
-                    prev_pos = self.cell_positions[cell.id]
-                    displacement = [current_pos[0] - prev_pos[0], 
+            self.step_count = mcs
+            
+            if mcs % 50 == 0:
+                cancer_count = len([c for c in self.cell_list if c.type == self.CELL])
+                fiber_count = len([c for c in self.cell_list if c.type == self.ECMFIBER])
+                print(f"Step {mcs}: Cells={cancer_count}, Fibers={fiber_count}, Errors={self.error_count}")
+            
+            # Update cell dynamics
+            self.update_cell_dynamics()
+            
+            # Handle MMP and degradation
+            self.handle_mmp_system()
+            
+        except Exception as e:
+            print(f"Error in step {mcs}: {e}")
+            self.error_count += 1
+            
+    def update_cell_dynamics(self):
+        """Update cell positions and polarity"""
+        try:
+            for cell in self.cell_list:
+                if cell.type == self.CELL:
+                    current_pos = [cell.xCOM, cell.yCOM]
+                    
+                    if cell.id in self.cell_positions:
+                        prev_pos = self.cell_positions[cell.id]
+                        velocity = [current_pos[0] - prev_pos[0], 
                                    current_pos[1] - prev_pos[1]]
-                    
-                    # Store displacement
-                    if cell.id not in self.cell_displacements:
-                        self.cell_displacements[cell.id] = []
-                    self.cell_displacements[cell.id].append(displacement)
-                    
-                    # Keep only recent displacements
-                    if len(self.cell_displacements[cell.id]) > self.polarity_memory:
-                        self.cell_displacements[cell.id].pop(0)
-                    
-                    # Calculate average polarity
-                    if len(self.cell_displacements[cell.id]) > 0:
-                        avg_disp = [0, 0]
-                        for disp in self.cell_displacements[cell.id]:
-                            avg_disp[0] += disp[0]
-                            avg_disp[1] += disp[1]
                         
-                        magnitude = math.sqrt(avg_disp[0]**2 + avg_disp[1]**2)
-                        if magnitude > 0:
-                            cell.dict['polarity_x'] = avg_disp[0] / magnitude
-                            cell.dict['polarity_y'] = avg_disp[1] / magnitude
-                
-                # Update position
-                self.cell_positions[cell.id] = current_pos
-                
-    def handle_mmp_dynamics(self):
-        """Handle MMP secretion and ECM degradation without PixelTracker"""
+                        # Store velocity history
+                        if cell.id not in self.cell_velocities:
+                            self.cell_velocities[cell.id] = []
+                        self.cell_velocities[cell.id].append(velocity)
+                        
+                        # Maintain memory window
+                        if len(self.cell_velocities[cell.id]) > self.polarity_memory:
+                            self.cell_velocities[cell.id].pop(0)
+                    
+                    # Update position
+                    self.cell_positions[cell.id] = current_pos
+                    
+        except Exception as e:
+            print(f"Error in cell dynamics: {e}")
+            self.error_count += 1
+            
+    def handle_mmp_system(self):
+        """Handle MMP secretion and fiber degradation"""
         try:
             mmp_field = self.field.MMP
             secretor = self.get_field_secretor("MMP")
             
-            ecm_pixels_to_degrade = []
-            
-            # MMP secretion by cells in contact with ECM
+            # MMP secretion
             for cell in self.cell_list:
                 if cell.type == self.CELL:
-                    ecm_contact = self.check_ecm_contact_simple(cell)
-                    if ecm_contact:
-                        secretor.secreteInsideCell(cell, self.mmp_secretion_rate)
-                        
-            # ECM degradation - manual pixel conversion
+                    if self.check_simple_fiber_contact(cell):
+                        try:
+                            secretor.secreteInsideCell(cell, self.mmp_secretion_rate)
+                        except:
+                            continue
+            
+            # Simple fiber degradation
+            fibers_to_remove = []
             for cell in self.cell_list:
-                if cell.type == self.ECM:
+                if cell.type == self.ECMFIBER:
                     try:
                         cx, cy = int(cell.xCOM), int(cell.yCOM)
                         if 0 <= cx < 500 and 0 <= cy < 500:
-                            mmp_concentration = mmp_field[cx, cy, 0]
-                            if mmp_concentration >= self.degradation_threshold:
-                                # Mark ECM pixels for degradation
-                                if cell.id in self.ecm_pixels:
-                                    for x, y in self.ecm_pixels[cell.id]:
-                                        if 0 <= x < 500 and 0 <= y < 500:
-                                            if self.cell_field[x, y, 0] == cell:
-                                                ecm_pixels_to_degrade.append((x, y))
-                                
-                                # Reduce MMP at this location
-                                mmp_field[cx, cy, 0] = max(0, mmp_concentration - 1.0)
-                    except Exception as e:
-                        print(f"Warning in ECM degradation: {e}")
+                            mmp_conc = mmp_field[cx, cy, 0]
+                            if mmp_conc >= self.degradation_threshold:
+                                fibers_to_remove.append(cell)
+                                mmp_field[cx, cy, 0] = max(0, mmp_conc - 0.5)
+                    except:
                         continue
-                        
-            # Manually convert ECM pixels to Medium
-            for x, y in ecm_pixels_to_degrade:
-                self.cell_field[x, y, 0] = None
-                    
-        except Exception as e:
-            print(f"Warning in MMP dynamics: {e}")
             
-    def check_ecm_contact_simple(self, cell):
-        """Simple ECM contact check without PixelTracker"""
+            # Remove degraded fibers
+            for fiber in fibers_to_remove:
+                self.safe_cell_removal(fiber)
+                
+        except Exception as e:
+            print(f"Error in MMP system: {e}")
+            self.error_count += 1
+            
+    def check_simple_fiber_contact(self, cell):
+        """Simple fiber contact check"""
         try:
             cx, cy = int(cell.xCOM), int(cell.yCOM)
             
-            # Check neighborhood around cell center
-            for dx in range(-8, 9):
-                for dy in range(-8, 9):
+            # Check immediate neighborhood
+            for dx in range(-3, 4):
+                for dy in range(-3, 4):
                     nx, ny = cx + dx, cy + dy
                     if 0 <= nx < 500 and 0 <= ny < 500:
-                        neighbor_cell = self.cell_field[nx, ny, 0]
-                        if neighbor_cell and neighbor_cell.type == self.ECM:
-                            return True
+                        try:
+                            neighbor = self.cell_field[nx, ny, 0]
+                            if neighbor and neighbor.type == self.ECMFIBER:
+                                return True
+                        except:
+                            continue
             return False
+            
         except Exception as e:
-            print(f"Warning in ECM contact check: {e}")
             return False
-        
-    def collect_data(self, mcs):
-        """Collect simulation data"""
-        if not self.output_file:
-            return
-            
-        try:
-            cell_count = len([c for c in self.cell_list if c.type == self.CELL])
-            ecm_count = len([c for c in self.cell_list if c.type == self.ECM])
-            
-            for cell in self.cell_list:
-                if cell.type == self.CELL:
-                    # Calculate net translocation
-                    if cell.id in self.initial_positions:
-                        initial_pos = self.initial_positions[cell.id]
-                        net_translocation = math.sqrt(
-                            (cell.xCOM - initial_pos[0])**2 + 
-                            (cell.yCOM - initial_pos[1])**2
-                        )
-                    else:
-                        net_translocation = 0
-                        
-                    self.output_file.write(f"{mcs},{cell.id},{cell.xCOM:.2f},"
-                                         f"{cell.yCOM:.2f},{net_translocation:.2f},"
-                                         f"{cell_count},{ecm_count}\n")
-                        
-            self.output_file.flush()
-        except Exception as e:
-            print(f"Warning: Could not collect data: {e}")
             
     def finish(self):
-        """Clean up simulation"""
-        if self.output_file:
-            try:
-                self.output_file.close()
-            except:
-                pass
+        """Simulation cleanup"""
+        try:
+            cancer_cells = [c for c in self.cell_list if c.type == self.CELL]
+            
+            if cancer_cells and self.initial_positions:
+                translocations = []
+                for cell in cancer_cells:
+                    if cell.id in self.initial_positions:
+                        initial = self.initial_positions[cell.id]
+                        final = [cell.xCOM, cell.yCOM]
+                        distance = math.sqrt((final[0] - initial[0])**2 + (final[1] - initial[1])**2)
+                        translocations.append(distance)
                 
-        # Calculate final statistics
-        cancer_cells = [c for c in self.cell_list if c.type == self.CELL]
-        net_translocations = []
-        
-        for cell in cancer_cells:
-            if cell.id in self.initial_positions:
-                initial_pos = self.initial_positions[cell.id]
-                net_translocation = math.sqrt(
-                    (cell.xCOM - initial_pos[0])**2 + 
-                    (cell.yCOM - initial_pos[1])**2
-                )
-                net_translocations.append(net_translocation)
-                
-        if net_translocations:
-            avg_translocation = np.mean(net_translocations)
-            print(f"Simulation complete!")
-            print(f"Final cancer cell count: {len(cancer_cells)}")
-            print(f"Average net translocation: {avg_translocation:.2f} pixels")
-        else:
-            print("Simulation complete - no data collected")
+                if translocations:
+                    avg_translocation = np.mean(translocations)
+                    print(f"\n=== SIMULATION COMPLETE ===")
+                    print(f"Final cancer cells: {len(cancer_cells)}")
+                    print(f"Average translocation: {avg_translocation:.2f} pixels")
+                    print(f"Total errors: {self.error_count}")
+                    print(f"Simulation steps: {self.step_count}")
+                    
+        except Exception as e:
+            print(f"Error in finish: {e}")
