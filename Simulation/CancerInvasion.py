@@ -1,5 +1,5 @@
 from cc3d import CompuCellSetup
-from CancerInvasionSteppables import ComprehensiveCancerInvasionSteppable
+from CancerInvasionSteppables import CancerInvasionSteppable
 
-CompuCellSetup.register_steppable(steppable=ComprehensiveCancerInvasionSteppable(frequency=1))
+CompuCellSetup.register_steppable(steppable=CancerInvasionSteppable(frequency=1))
 CompuCellSetup.run()
