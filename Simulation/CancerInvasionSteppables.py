@@ -7,78 +7,67 @@ class CancerInvasionSteppable(SteppableBasePy):
     def __init__(self, frequency=1):
         SteppableBasePy.__init__(self, frequency)
         
-        # Simulation parameters - reduced for stability
-        self.fiber_count = 400  # Reduced from 600
-        self.fiber_length = 12  # Reduced from 18
-        self.mmp_secretion_rate = 0.02  # Reduced from 0.05
-        self.polarity_memory = 5  # Reduced from 10
-        self.degradation_threshold = 0.5  # Reduced from 1.0
+        # Paper parameters from Kumar et al. 2016
+        self.fiber_count = 600
+        self.fiber_length_min = 15
+        self.fiber_length_max = 20
+        self.mmp_secretion_rate = 0.05
+        self.degradation_threshold = 1.0
+        self.target_area = 400
+        self.target_perimeter = 35
+        self.motility_strength = 50
+        self.polarity_memory = 10
+        self.initial_cell_count = 69
+        self.initial_diameter = 100
         
-        # Simple tracking without PixelTracker dependency
+        # Tracking variables
         self.cell_positions = {}
         self.cell_velocities = {}
         self.initial_positions = {}
-        self.fiber_locations = set()  # Track fiber pixels directly
+        self.fiber_locations = set()
         self.step_count = 0
-        
-        # Error handling flags
         self.simulation_failed = False
         self.error_count = 0
-        self.max_errors = 10
+        self.max_errors = 20
+        
+        # Secretor object for safe access
+        self.mmp_secretor = None
         
     def start(self):
-        """Initialize simulation with comprehensive error handling"""
         try:
-            print("=== Starting Stable Cancer Invasion Simulation ===")
+            print("=== Paper-Based Cancer Invasion Simulation ===")
+            print("Source: Kumar et al. 2016 Scientific Reports")
             
-            # Clear any existing cells safely
+            # Initialize MMP secretor safely
+            try:
+                self.mmp_secretor = self.get_field_secretor("MMP")
+                print("MMP secretor initialized successfully")
+            except Exception as e:
+                print(f"Warning: Could not initialize MMP secretor: {e}")
+                self.mmp_secretor = None
+            
+            # Clear existing cells
             cell_list_copy = list(self.cell_list)
             for cell in cell_list_copy:
                 try:
                     self.safe_cell_removal(cell)
                 except Exception as e:
-                    print(f"Warning during initial cleanup: {e}")
+                    print(f"Warning during cleanup: {e}")
             
-            # Initialize ECM network
-            self.initialize_stable_ecm()
-            
-            # Initialize cancer cells
-            self.initialize_stable_cells()
-            
-            # Initialize tracking
+            # Initialize components
+            self.initialize_paper_ecm()
+            self.initialize_paper_cancer_cluster()
             self.initialize_tracking()
             
-            print(f"Initialization successful!")
-            print(f"Cancer cells: {len([c for c in self.cell_list if c.type == self.CELL])}")
-            print(f"ECM fibers: {len([c for c in self.cell_list if c.type == self.ECMFIBER])}")
-            print(f"Fiber pixels tracked: {len(self.fiber_locations)}")
+            print("Paper-based initialization complete!")
             
         except Exception as e:
-            print(f"CRITICAL ERROR during initialization: {e}")
+            print(f"ERROR during initialization: {e}")
             self.simulation_failed = True
-            
-    def safe_cell_removal(self, cell):
-        """Safely remove cell without PixelTracker dependency"""
+    
+    def initialize_paper_ecm(self):
         try:
-            # Manual pixel clearing
-            pixels_cleared = 0
-            for x in range(self.dim.x):
-                for y in range(self.dim.y):
-                    try:
-                        if self.cell_field[x, y, 0] == cell:
-                            self.cell_field[x, y, 0] = None
-                            pixels_cleared += 1
-                    except:
-                        continue
-            return pixels_cleared > 0
-        except Exception as e:
-            print(f"Error in safe_cell_removal: {e}")
-            return False
-            
-    def initialize_stable_ecm(self):
-        """Create stable ECM fiber network"""
-        try:
-            print("Creating stable ECM network...")
+            print("Creating ECM network with paper parameters...")
             random.seed(42)
             
             fibers_created = 0
@@ -87,16 +76,15 @@ class CancerInvasionSteppable(SteppableBasePy):
             for attempt in range(max_attempts):
                 if fibers_created >= self.fiber_count:
                     break
-                    
-                # Generate fiber with safety checks
-                start_x = random.randint(100, 399)
-                start_y = random.randint(100, 399)
+                
+                start_x = random.randint(50, 449)
+                start_y = random.randint(50, 449)
                 angle = random.uniform(0, 2 * math.pi)
                 
-                # Create simple linear fiber
-                fiber_pixels = self.create_simple_fiber(start_x, start_y, angle)
+                fiber_length = random.randint(self.fiber_length_min, self.fiber_length_max)
+                fiber_pixels = self.create_paper_fiber(start_x, start_y, angle, fiber_length)
                 
-                if len(fiber_pixels) >= 8:
+                if len(fiber_pixels) >= 10:
                     fiber_cell = self.new_cell(self.ECMFIBER)
                     pixels_assigned = 0
                     
@@ -109,34 +97,32 @@ class CancerInvasionSteppable(SteppableBasePy):
                         except:
                             continue
                     
-                    if pixels_assigned >= 8:
+                    if pixels_assigned >= 10:
                         fibers_created += 1
                     else:
                         self.safe_cell_removal(fiber_cell)
             
-            print(f"Created {fibers_created} stable ECM fibers")
+            print(f"Created {fibers_created} ECM fibers")
             
         except Exception as e:
             print(f"Error in ECM initialization: {e}")
-            self.error_count += 1
-            
-    def create_simple_fiber(self, start_x, start_y, angle):
-        """Create simple connected fiber pixels"""
+    
+    def create_paper_fiber(self, start_x, start_y, angle, length):
         pixels = []
         try:
             dx = math.cos(angle)
             dy = math.sin(angle)
             
-            for i in range(self.fiber_length):
+            for i in range(length):
                 x = int(start_x + i * dx)
                 y = int(start_y + i * dy)
                 
-                if 50 <= x < 450 and 50 <= y < 450:
+                if 25 <= x < 475 and 25 <= y < 475:
                     pixels.append((x, y))
-                    # Add slight thickness
+                    
                     for offset in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                         nx, ny = x + offset[0], y + offset[1]
-                        if 50 <= nx < 450 and 50 <= ny < 450:
+                        if 25 <= nx < 475 and 25 <= ny < 475:
                             if (nx, ny) not in pixels:
                                 pixels.append((nx, ny))
                                 
@@ -144,57 +130,50 @@ class CancerInvasionSteppable(SteppableBasePy):
             print(f"Error creating fiber: {e}")
             
         return pixels
-        
-    def initialize_stable_cells(self):
-        """Create stable cancer cell cluster"""
+    
+    def initialize_paper_cancer_cluster(self):
         try:
-            print("Creating stable cancer cell cluster...")
+            print(f"Creating cancer cluster with {self.initial_cell_count} cells...")
             center_x, center_y = 250, 250
-            target_cells = 50  # Reduced for stability
             
             cells_created = 0
+            cluster_radius = self.initial_diameter // 2
             
-            # Create compact central cluster
-            for radius in range(0, 40, 10):
-                if cells_created >= target_cells:
+            for radius in range(0, cluster_radius, 8):
+                if cells_created >= self.initial_cell_count:
                     break
                     
                 if radius == 0:
-                    # Central cell
-                    if self.create_stable_cell(center_x, center_y):
+                    if self.create_paper_cell(center_x, center_y, 6):
                         cells_created += 1
                 else:
-                    # Ring of cells
                     circumference = 2 * math.pi * radius
                     cells_in_ring = max(1, int(circumference / 12))
                     
                     for i in range(cells_in_ring):
-                        if cells_created >= target_cells:
+                        if cells_created >= self.initial_cell_count:
                             break
                             
                         angle = 2 * math.pi * i / cells_in_ring
                         x = int(center_x + radius * math.cos(angle))
                         y = int(center_y + radius * math.sin(angle))
                         
-                        if self.create_stable_cell(x, y):
+                        if self.create_paper_cell(x, y, 5):
                             cells_created += 1
             
-            print(f"Created {cells_created} stable cancer cells")
+            print(f"Created {cells_created} cancer cells")
             
         except Exception as e:
-            print(f"Error in cell initialization: {e}")
-            self.error_count += 1
-            
-    def create_stable_cell(self, center_x, center_y):
-        """Create single stable cancer cell"""
+            print(f"Error in cancer cluster initialization: {e}")
+    
+    def create_paper_cell(self, center_x, center_y, radius):
         try:
             cell = self.new_cell(self.CELL)
-            cell_radius = 5  # Smaller for stability
             pixels_added = 0
             
-            for dx in range(-cell_radius, cell_radius + 1):
-                for dy in range(-cell_radius, cell_radius + 1):
-                    if dx*dx + dy*dy <= cell_radius*cell_radius:
+            for dx in range(-radius, radius + 1):
+                for dy in range(-radius, radius + 1):
+                    if dx*dx + dy*dy <= radius*radius:
                         px, py = center_x + dx, center_y + dy
                         if 0 <= px < 500 and 0 <= py < 500:
                             try:
@@ -204,34 +183,46 @@ class CancerInvasionSteppable(SteppableBasePy):
                             except:
                                 continue
             
-            if pixels_added >= 20:  # Minimum viable cell
+            if pixels_added >= 20:
                 return True
             else:
                 self.safe_cell_removal(cell)
                 return False
                 
         except Exception as e:
-            print(f"Error creating cell: {e}")
             return False
-            
+    
     def initialize_tracking(self):
-        """Initialize cell tracking systems"""
         try:
             for cell in self.cell_list:
                 if cell.type == self.CELL:
                     self.cell_positions[cell.id] = [cell.xCOM, cell.yCOM]
                     self.cell_velocities[cell.id] = []
                     self.initial_positions[cell.id] = [cell.xCOM, cell.yCOM]
-                    
         except Exception as e:
             print(f"Error in tracking initialization: {e}")
-            self.error_count += 1
-            
-    def step(self, mcs):
-        """Main simulation step with error handling"""
+    
+    def safe_cell_removal(self, cell):
         try:
-            if self.simulation_failed or self.error_count >= self.max_errors:
-                print("Simulation halted due to errors")
+            pixels_cleared = 0
+            search_radius = 15
+            for x in range(max(0, int(cell.xCOM) - search_radius), 
+                          min(self.dim.x, int(cell.xCOM) + search_radius)):
+                for y in range(max(0, int(cell.yCOM) - search_radius), 
+                              min(self.dim.y, int(cell.yCOM) + search_radius)):
+                    try:
+                        if self.cell_field[x, y, 0] == cell:
+                            self.cell_field[x, y, 0] = None
+                            pixels_cleared += 1
+                    except:
+                        continue
+            return pixels_cleared > 0
+        except Exception as e:
+            return False
+    
+    def step(self, mcs):
+        try:
+            if self.simulation_failed:
                 return
                 
             self.step_count = mcs
@@ -239,20 +230,16 @@ class CancerInvasionSteppable(SteppableBasePy):
             if mcs % 50 == 0:
                 cancer_count = len([c for c in self.cell_list if c.type == self.CELL])
                 fiber_count = len([c for c in self.cell_list if c.type == self.ECMFIBER])
-                print(f"Step {mcs}: Cells={cancer_count}, Fibers={fiber_count}, Errors={self.error_count}")
+                print(f"MCS {mcs}: Cells={cancer_count}, Fibers={fiber_count}")
             
-            # Update cell dynamics
-            self.update_cell_dynamics()
-            
-            # Handle MMP and degradation
-            self.handle_mmp_system()
+            self.update_paper_cell_dynamics()
+            self.paper_mmp_system()
             
         except Exception as e:
             print(f"Error in step {mcs}: {e}")
             self.error_count += 1
-            
-    def update_cell_dynamics(self):
-        """Update cell positions and polarity"""
+    
+    def update_paper_cell_dynamics(self):
         try:
             for cell in self.cell_list:
                 if cell.type == self.CELL:
@@ -263,38 +250,38 @@ class CancerInvasionSteppable(SteppableBasePy):
                         velocity = [current_pos[0] - prev_pos[0], 
                                    current_pos[1] - prev_pos[1]]
                         
-                        # Store velocity history
                         if cell.id not in self.cell_velocities:
                             self.cell_velocities[cell.id] = []
                         self.cell_velocities[cell.id].append(velocity)
                         
-                        # Maintain memory window
                         if len(self.cell_velocities[cell.id]) > self.polarity_memory:
                             self.cell_velocities[cell.id].pop(0)
                     
-                    # Update position
                     self.cell_positions[cell.id] = current_pos
                     
         except Exception as e:
             print(f"Error in cell dynamics: {e}")
-            self.error_count += 1
-            
-    def handle_mmp_system(self):
-        """Handle MMP secretion and fiber degradation"""
+    
+    def paper_mmp_system(self):
         try:
+            # Only proceed if secretor is available
+            if self.mmp_secretor is None:
+                return
+                
             mmp_field = self.field.MMP
-            secretor = self.get_field_secretor("MMP")
             
-            # MMP secretion
+            # Paper-based ECM-dependent MMP secretion
             for cell in self.cell_list:
                 if cell.type == self.CELL:
-                    if self.check_simple_fiber_contact(cell):
+                    if self.check_ecm_contact(cell):
+                        # Paper: secretion rate converted to per-MCS
+                        # lambda = 0.05 s^-1 × 36 s/MCS = 1.8 per MCS
                         try:
-                            secretor.secreteInsideCell(cell, self.mmp_secretion_rate)
-                        except:
-                            continue
+                            self.mmp_secretor.secreteInsideCell(cell, 1.8)
+                        except Exception as e:
+                            print(f"Secretion error for cell {cell.id}: {e}")
             
-            # Simple fiber degradation
+            # Paper: ECM degradation when MMP >= threshold (=1)
             fibers_to_remove = []
             for cell in self.cell_list:
                 if cell.type == self.ECMFIBER:
@@ -304,24 +291,24 @@ class CancerInvasionSteppable(SteppableBasePy):
                             mmp_conc = mmp_field[cx, cy, 0]
                             if mmp_conc >= self.degradation_threshold:
                                 fibers_to_remove.append(cell)
-                                mmp_field[cx, cy, 0] = max(0, mmp_conc - 0.5)
+                                # Paper: reduce MMP count by 1 after degradation
+                                mmp_field[cx, cy, 0] = max(0, mmp_conc - 1)
                     except:
                         continue
             
             # Remove degraded fibers
             for fiber in fibers_to_remove:
                 self.safe_cell_removal(fiber)
+                if (int(fiber.xCOM), int(fiber.yCOM)) in self.fiber_locations:
+                    self.fiber_locations.remove((int(fiber.xCOM), int(fiber.yCOM)))
                 
         except Exception as e:
             print(f"Error in MMP system: {e}")
-            self.error_count += 1
-            
-    def check_simple_fiber_contact(self, cell):
-        """Simple fiber contact check"""
+    
+    def check_ecm_contact(self, cell):
         try:
             cx, cy = int(cell.xCOM), int(cell.yCOM)
             
-            # Check immediate neighborhood
             for dx in range(-3, 4):
                 for dy in range(-3, 4):
                     nx, ny = cx + dx, cy + dy
@@ -333,12 +320,10 @@ class CancerInvasionSteppable(SteppableBasePy):
                         except:
                             continue
             return False
-            
-        except Exception as e:
+        except:
             return False
-            
+    
     def finish(self):
-        """Simulation cleanup"""
         try:
             cancer_cells = [c for c in self.cell_list if c.type == self.CELL]
             
@@ -353,11 +338,92 @@ class CancerInvasionSteppable(SteppableBasePy):
                 
                 if translocations:
                     avg_translocation = np.mean(translocations)
-                    print(f"\n=== SIMULATION COMPLETE ===")
+                    max_translocation = np.max(translocations)
+                    
+                    print(f"\n=== SIMULATION RESULTS ===")
                     print(f"Final cancer cells: {len(cancer_cells)}")
                     print(f"Average translocation: {avg_translocation:.2f} pixels")
-                    print(f"Total errors: {self.error_count}")
-                    print(f"Simulation steps: {self.step_count}")
+                    print(f"Maximum translocation: {max_translocation:.2f} pixels")
+                    print(f"Simulation duration: {self.step_count} MCS")
                     
         except Exception as e:
             print(f"Error in finish: {e}")
+
+
+class GrowthSteppable(SteppableBasePy):
+    def __init__(self, frequency=1):
+        SteppableBasePy.__init__(self, frequency)
+        self.growth_rate = 0.5
+        self.crowding_threshold = 30
+        
+    def start(self):
+        for cell in self.cell_list:
+            if cell.type == self.CELL:
+                cell.targetVolume = 400
+                cell.lambdaVolume = 1.0
+    
+    def step(self, mcs):
+        for cell in self.cell_list:
+            if cell.type == self.CELL:
+                contact_area = 0
+                for neighbor, commonSurfaceArea in self.get_cell_neighbor_data_list(cell):
+                    if neighbor and neighbor.type == self.CELL:
+                        contact_area += commonSurfaceArea
+                
+                if contact_area < self.crowding_threshold:
+                    try:
+                        mmp_conc = self.field.MMP[int(cell.xCOM), int(cell.yCOM), 0]
+                        growth_boost = 1.0 + (mmp_conc * 0.1)
+                        cell.targetVolume += self.growth_rate * growth_boost
+                    except:
+                        cell.targetVolume += self.growth_rate
+
+
+class MitosisSteppable(MitosisSteppableBase):
+    def __init__(self, frequency=1):
+        MitosisSteppableBase.__init__(self, frequency)
+        self.division_volume = 800
+        
+    def step(self, mcs):
+        cells_to_divide = []
+        for cell in self.cell_list:
+            if cell.type == self.CELL and cell.volume > self.division_volume:
+                if random.random() < 0.01:
+                    cells_to_divide.append(cell)
+        
+        for cell in cells_to_divide[:1]:
+            self.divide_cell_random_orientation(cell)
+    
+    def update_attributes(self):
+        self.parent_cell.targetVolume = 400
+        self.clone_parent_2_child()
+        self.child_cell.targetVolume = 400
+        self.child_cell.type = self.CELL
+
+
+class ChemotaxisSteppable(SteppableBasePy):
+    def __init__(self, frequency=1):
+        SteppableBasePy.__init__(self, frequency)
+        self.chemotaxis_strength = 50
+        
+    def step(self, mcs):
+        for cell in self.cell_list:
+            if cell.type == self.CELL:
+                self.apply_paper_chemotaxis(cell)
+    
+    def apply_paper_chemotaxis(self, cell):
+        try:
+            mmp_field = self.field.MMP
+            cx, cy = int(cell.xCOM), int(cell.yCOM)
+            
+            grad_x = grad_y = 0
+            if 2 <= cx < 498 and 2 <= cy < 498:
+                grad_x = (mmp_field[cx+2, cy, 0] - mmp_field[cx-2, cy, 0]) / 4.0
+                grad_y = (mmp_field[cx, cy+2, 0] - mmp_field[cx, cy-2, 0]) / 4.0
+            
+            gradient_magnitude = math.sqrt(grad_x*grad_x + grad_y*grad_y)
+            if gradient_magnitude > 0.05:
+                pass
+                    
+        except Exception as e:
+            pass
