@@ -1,55 +1,112 @@
 <CompuCell3D Revision="20190101" Version="4.2.5">
    <Metadata>
       <NumberOfProcessors>1</NumberOfProcessors>
-      <DebugOutputFrequency>100</DebugOutputFrequency>
+      <DebugOutputFrequency>50</DebugOutputFrequency>
    </Metadata>
    
    <Potts>
       <Dimensions x="500" y="500" z="1"/>
-      <Steps>1800</Steps>
+      <Steps>2400</Steps>
       <Temperature>0.01</Temperature>
       <NeighborOrder>1</NeighborOrder>
+      <FluctuationAmplitude>
+         <FluctuationAmplitudeParameters CellType="Medium" FluctuationAmplitude="0.0"/>
+         <FluctuationAmplitudeParameters CellType="Cell" FluctuationAmplitude="1.0"/>
+         <FluctuationAmplitudeParameters CellType="ECMFiber" FluctuationAmplitude="0.0"/>
+         <FluctuationAmplitudeParameters CellType="DegradedECM" FluctuationAmplitude="0.5"/>
+      </FluctuationAmplitude>
+      
+      <!-- Enhanced energy output for mechanical analysis -->
+      <EnergyFunctionCalculator>
+         <OutputFileName Frequency="20">energyData.txt</OutputFileName>
+         <OutputCoreFileNameSpinFlips Frequency="1" GatherResults="" OutputAccepted="" OutputRejected="" OutputTotal=""/>
+      </EnergyFunctionCalculator>
    </Potts>
    
    <Plugin Name="CellType">
       <CellType TypeId="0" TypeName="Medium"/>
       <CellType TypeId="1" TypeName="Cell"/>
       <CellType TypeId="2" TypeName="ECMFiber"/>
+      <CellType TypeId="3" TypeName="DegradedECM"/>
    </Plugin>
    
    <Plugin Name="Volume">
       <VolumeEnergyParameters CellType="Cell" LambdaVolume="1.0" TargetVolume="400"/>
-      <VolumeEnergyParameters CellType="ECMFiber" LambdaVolume="1.0" TargetVolume="15"/>
+      <VolumeEnergyParameters CellType="ECMFiber" LambdaVolume="2.0" TargetVolume="15"/>
+      <VolumeEnergyParameters CellType="DegradedECM" LambdaVolume="1.5" TargetVolume="10"/>
    </Plugin>
    
    <Plugin Name="Surface">
       <SurfaceEnergyParameters CellType="Cell" LambdaSurface="0.5" TargetSurface="35"/>
-      <SurfaceEnergyParameters CellType="ECMFiber" LambdaSurface="0.5" TargetSurface="20"/>
+      <SurfaceEnergyParameters CellType="ECMFiber" LambdaSurface="0.8" TargetSurface="20"/>
+      <SurfaceEnergyParameters CellType="DegradedECM" LambdaSurface="0.6" TargetSurface="15"/>
    </Plugin>
    
+   <!-- Enhanced contact energies for mechanical force analysis -->
    <Plugin Name="Contact">
       <Energy Type1="Medium" Type2="Medium">35</Energy>
       <Energy Type1="Medium" Type2="Cell">32</Energy>
       <Energy Type1="Medium" Type2="ECMFiber">35</Energy>
+      <Energy Type1="Medium" Type2="DegradedECM">25</Energy>
       <Energy Type1="Cell" Type2="Cell">16</Energy>
       <Energy Type1="Cell" Type2="ECMFiber">16</Energy>
+      <Energy Type1="Cell" Type2="DegradedECM">10</Energy>
       <Energy Type1="ECMFiber" Type2="ECMFiber">5</Energy>
+      <Energy Type1="ECMFiber" Type2="DegradedECM">8</Energy>
+      <Energy Type1="DegradedECM" Type2="DegradedECM">12</Energy>
       <NeighborOrder>1</NeighborOrder>
    </Plugin>
    
+   <!-- Enhanced plugins for detailed tracking -->
    <Plugin Name="CenterOfMass"/>
    <Plugin Name="NeighborTracker"/>
+   <Plugin Name="VolumeTracker"/>
+   <Plugin Name="SurfaceTracker"/>
+   <Plugin Name="PixelTracker"/>
+   <Plugin Name="BoundaryPixelTracker"/>
    
-   <Plugin Name="Secretion"/>
+   <!-- External potential for mechanical forces -->
+   <Plugin Name="ExternalPotential"/>
    
+   <!-- Enhanced secretion for cellular heterogeneity -->
+   <Plugin Name="Secretion">
+      <Field Name="MMP"/>
+      <Field Name="I"/>
+      <Field Name="GF"/>
+   </Plugin>
+   
+   <!-- Enhanced chemotaxis with contact guidance -->
+   <Plugin Name="Chemotaxis">
+      <ChemicalField Name="GF">
+         <ChemotaxisByType Lambda="200" Type="Cell"/>
+      </ChemicalField>
+   </Plugin>
+   
+   <!-- Enhanced diffusion solver for chemical fields -->
    <Steppable Type="DiffusionSolverFE">
       <DiffusionField Name="MMP">
          <DiffusionData>
             <FieldName>MMP</FieldName>
-            <DiffusionConstant>0.1</DiffusionConstant>
-            <DecayConstant>0.072</DecayConstant>
+            <DiffusionConstant>0.01</DiffusionConstant>
+            <DecayConstant>0.003</DecayConstant>
+            <AdditionalTerm>0.0</AdditionalTerm>
          </DiffusionData>
-
+      </DiffusionField>
+      <DiffusionField Name="I">
+         <DiffusionData>
+            <FieldName>I</FieldName>
+            <DiffusionConstant>0.035</DiffusionConstant>
+            <DecayConstant>0.003</DecayConstant>
+            <AdditionalTerm>0.0</AdditionalTerm>
+         </DiffusionData>
+      </DiffusionField>
+      <DiffusionField Name="GF">
+         <DiffusionData>
+            <FieldName>GF</FieldName>
+            <DiffusionConstant>0.05</DiffusionConstant>
+            <DecayConstant>0.001</DecayConstant>
+            <AdditionalTerm>0.0</AdditionalTerm>
+         </DiffusionData>
       </DiffusionField>
    </Steppable>
    
