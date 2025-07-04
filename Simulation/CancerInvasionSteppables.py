@@ -3,16 +3,17 @@ import numpy as np
 import random
 import math
 
+
 class CancerInvasionSteppable(SteppableBasePy):
     def __init__(self, frequency=1):
         SteppableBasePy.__init__(self, frequency)
         
-        # Simulation parameters - reduced for stability
-        self.fiber_count = 400  # Reduced from 600
-        self.fiber_length = 12  # Reduced from 18
-        self.mmp_secretion_rate = 0.02  # Reduced from 0.05
-        self.polarity_memory = 5  # Reduced from 10
-        self.degradation_threshold = 0.5  # Reduced from 1.0
+        # Simulation parameters - restored to original values
+        self.fiber_count = 600
+        self.fiber_length = 18
+        self.mmp_secretion_rate = 0.05
+        self.polarity_memory = 10
+        self.degradation_threshold = 1.0
         
         # Simple tracking without PixelTracker dependency
         self.cell_positions = {}
