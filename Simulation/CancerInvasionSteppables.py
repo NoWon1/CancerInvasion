@@ -107,7 +107,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                                 self.cell_field[x, y, 0] = fiber_cell
                                 self.fiber_locations.add((x, y))
                                 pixels_assigned += 1
-                        except:
+                        except Exception:
                             continue
                     
                     if pixels_assigned >= 8:
