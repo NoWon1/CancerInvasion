@@ -21,6 +21,7 @@ class CancerInvasionSteppable(SteppableBasePy):
         self.initial_positions = {}
         self.fiber_locations = set()  # Track fiber pixels directly
         self.step_count = 0
+        self.cell_pixels = {}
         
         # Error handling flags
         self.simulation_failed = False
@@ -61,8 +62,27 @@ class CancerInvasionSteppable(SteppableBasePy):
     def safe_cell_removal(self, cell):
         """Safely remove cell without PixelTracker dependency"""
         try:
-            # Manual pixel clearing
             pixels_cleared = 0
+
+            # Optimized removal using tracked pixels for static cells (like ECM fibers)
+            if hasattr(self, 'cell_pixels') and cell.id in self.cell_pixels:
+                for x, y in list(self.cell_pixels[cell.id]):
+                    try:
+                        if self.cell_field[x, y, 0] == cell:
+                            self.cell_field[x, y, 0] = None
+                            pixels_cleared += 1
+                    except:
+                        continue
+                del self.cell_pixels[cell.id]
+
+                # If we successfully cleared pixels from the cache, we can return early.
+                # In Potts models, dynamic cells might move, but ECM fibers are static.
+                # For safety, if no pixels were cleared via cache (cache was completely stale),
+                # or if the cell is not an ECM fiber (and thus could have moved), we fallback.
+                if pixels_cleared > 0 and cell.type == self.ECMFIBER:
+                    return True
+
+            # Manual pixel clearing fallback for dynamic cells or if cache missed
             for x in range(self.dim.x):
                 for y in range(self.dim.y):
                     try:
@@ -106,6 +126,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                             if self.cell_field[x, y, 0] is None:
                                 self.cell_field[x, y, 0] = fiber_cell
                                 self.fiber_locations.add((x, y))
+                                if fiber_cell.id not in self.cell_pixels:
+                                    self.cell_pixels[fiber_cell.id] = set()
+                                self.cell_pixels[fiber_cell.id].add((x, y))
                                 pixels_assigned += 1
                         except:
                             continue
@@ -201,6 +224,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                             try:
                                 if self.cell_field[px, py, 0] is None:
                                     self.cell_field[px, py, 0] = cell
+                                    if cell.id not in self.cell_pixels:
+                                        self.cell_pixels[cell.id] = set()
+                                    self.cell_pixels[cell.id].add((px, py))
                                     pixels_added += 1
                             except:
                                 continue
