@@ -206,16 +206,22 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             pixels_cleared = 0
             search_radius = 15
-            for x in range(max(0, int(cell.xCOM) - search_radius), 
-                          min(self.dim.x, int(cell.xCOM) + search_radius)):
-                for y in range(max(0, int(cell.yCOM) - search_radius), 
-                              min(self.dim.y, int(cell.yCOM) + search_radius)):
-                    try:
-                        if self.cell_field[x, y, 0] == cell:
-                            self.cell_field[x, y, 0] = None
-                            pixels_cleared += 1
-                    except:
-                        continue
+
+            # Explicit and safe boundary evaluation
+            min_x = max(0, int(cell.xCOM) - search_radius)
+            max_x = min(self.dim.x, int(cell.xCOM) + search_radius)
+            min_y = max(0, int(cell.yCOM) - search_radius)
+            max_y = min(self.dim.y, int(cell.yCOM) + search_radius)
+
+            field = self.cell_field
+
+            for x in range(min_x, max_x):
+                for y in range(min_y, max_y):
+                    # Direct check without per-iteration try-except block
+                    if field[x, y, 0] == cell:
+                        field[x, y, 0] = None
+                        pixels_cleared += 1
+
             return pixels_cleared > 0
         except Exception as e:
             return False
@@ -308,17 +314,18 @@ class CancerInvasionSteppable(SteppableBasePy):
     def check_ecm_contact(self, cell):
         try:
             cx, cy = int(cell.xCOM), int(cell.yCOM)
+            field = self.cell_field
+            target_type = self.ECMFIBER
             
             for dx in range(-3, 4):
-                for dy in range(-3, 4):
-                    nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < 500 and 0 <= ny < 500:
-                        try:
-                            neighbor = self.cell_field[nx, ny, 0]
-                            if neighbor and neighbor.type == self.ECMFIBER:
+                nx = cx + dx
+                if 0 <= nx < 500:
+                    for dy in range(-3, 4):
+                        ny = cy + dy
+                        if 0 <= ny < 500:
+                            neighbor = field[nx, ny, 0]
+                            if neighbor and neighbor.type == target_type:
                                 return True
-                        except:
-                            continue
             return False
         except:
             return False
