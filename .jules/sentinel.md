@@ -1,0 +1,4 @@
+## 2024-05-24 - DoS and Reliability Risk from Bare Except Blocks
+**Vulnerability:** Bare `except:` blocks within simulation code were silently swallowing critical system-level exceptions like `KeyboardInterrupt` and `SystemExit`.
+**Learning:** In long-running simulation scripts (like CC3D), using a bare `except:` prevents users from stopping or properly terminating a process. This creates localized Denial of Service (DoS) conditions and reliability risks when system signals cannot propagate.
+**Prevention:** Always use `except Exception:` instead of a bare `except:` to ensure you only catch application-level errors, allowing system signals and interrupts to pass through properly.
