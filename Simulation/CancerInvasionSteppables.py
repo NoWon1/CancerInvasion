@@ -206,16 +206,15 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             pixels_cleared = 0
             search_radius = 15
+            # ⚡ Bolt Optimization: Use min/max with self.dim to precalculate bounds
+            # and avoid slow SWIG try/except overhead on out-of-bounds accesses
             for x in range(max(0, int(cell.xCOM) - search_radius), 
                           min(self.dim.x, int(cell.xCOM) + search_radius)):
                 for y in range(max(0, int(cell.yCOM) - search_radius), 
                               min(self.dim.y, int(cell.yCOM) + search_radius)):
-                    try:
-                        if self.cell_field[x, y, 0] == cell:
-                            self.cell_field[x, y, 0] = None
-                            pixels_cleared += 1
-                    except:
-                        continue
+                    if self.cell_field[x, y, 0] == cell:
+                        self.cell_field[x, y, 0] = None
+                        pixels_cleared += 1
             return pixels_cleared > 0
         except Exception as e:
             return False
@@ -309,18 +308,20 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             cx, cy = int(cell.xCOM), int(cell.yCOM)
             
-            for dx in range(-3, 4):
-                for dy in range(-3, 4):
-                    nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < 500 and 0 <= ny < 500:
-                        try:
-                            neighbor = self.cell_field[nx, ny, 0]
-                            if neighbor and neighbor.type == self.ECMFIBER:
-                                return True
-                        except:
-                            continue
+            # ⚡ Bolt Optimization: Precalculate bounds instead of fixed range(-3, 4)
+            # and inner if/try/except to avoid expensive exception overhead
+            x_min = max(0, cx - 3)
+            x_max = min(self.dim.x, cx + 4)
+            y_min = max(0, cy - 3)
+            y_max = min(self.dim.y, cy + 4)
+
+            for nx in range(x_min, x_max):
+                for ny in range(y_min, y_max):
+                    neighbor = self.cell_field[nx, ny, 0]
+                    if neighbor and neighbor.type == self.ECMFIBER:
+                        return True
             return False
-        except:
+        except Exception:
             return False
     
     def finish(self):
