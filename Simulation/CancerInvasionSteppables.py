@@ -69,7 +69,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                         if self.cell_field[x, y, 0] == cell:
                             self.cell_field[x, y, 0] = None
                             pixels_cleared += 1
-                    except:
+                    except Exception:
                         continue
             return pixels_cleared > 0
         except Exception as e:
@@ -107,7 +107,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                                 self.cell_field[x, y, 0] = fiber_cell
                                 self.fiber_locations.add((x, y))
                                 pixels_assigned += 1
-                        except:
+                        except Exception:
                             continue
                     
                     if pixels_assigned >= 8:
@@ -202,7 +202,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                                 if self.cell_field[px, py, 0] is None:
                                     self.cell_field[px, py, 0] = cell
                                     pixels_added += 1
-                            except:
+                            except Exception:
                                 continue
             
             if pixels_added >= 20:  # Minimum viable cell
@@ -292,7 +292,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                     if self.check_simple_fiber_contact(cell):
                         try:
                             secretor.secreteInsideCell(cell, self.mmp_secretion_rate)
-                        except:
+                        except Exception:
                             continue
             
             # Simple fiber degradation
@@ -306,7 +306,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                             if mmp_conc >= self.degradation_threshold:
                                 fibers_to_remove.append(cell)
                                 mmp_field[cx, cy, 0] = max(0, mmp_conc - 0.5)
-                    except:
+                    except Exception:
                         continue
             
             # Remove degraded fibers
@@ -331,7 +331,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                             neighbor = self.cell_field[nx, ny, 0]
                             if neighbor and neighbor.type == self.ECMFIBER:
                                 return True
-                        except:
+                        except Exception:
                             continue
             return False
             
