@@ -1,0 +1,3 @@
+## 2024-07-21 - CompuCell3D SWIG Out-of-Bounds Overhead
+**Learning:** In CompuCell3D (CC3D) Python scripts, using `try...except` blocks to handle out-of-bounds field accesses (like `self.cell_field`) inside tightly nested spatial loops incurs significant performance overhead. This is because SWIG object lookups throw expensive C++ exceptions that cross the language barrier.
+**Action:** Always prefer explicit dynamic bounds checking (e.g., `0 <= x < self.dim.x` and `0 <= y < self.dim.y`) before accessing field arrays in tight loops to prevent exceptions entirely. Avoid hardcoded values (like 500) and use `self.dim` instead to ensure flexibility.
