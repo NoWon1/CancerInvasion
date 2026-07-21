@@ -1,0 +1,4 @@
+## 2025-02-26 - Bare exceptions in simulation scripts swallowing system signals
+**Vulnerability:** Bare `except:` blocks within spatial loops and error handling in simulation scripts (`CancerInvasionSteppables.py`).
+**Learning:** Bare exceptions catch `BaseException`, which includes critical system-level signals like `KeyboardInterrupt` and `SystemExit`. Catching these silently within tight simulation loops can prevent the application from terminating when requested by the OS or user, leading to localized Denial of Service (DoS) and decreasing overall system reliability.
+**Prevention:** Always catch `Exception` (or a more specific error class) instead of using bare `except:`. `Exception` only catches non-system-exiting exceptions, allowing critical signals to propagate correctly. Use a static analysis check (e.g., via the `ast` module matching `ast.ExceptHandler` with `node.type is None`) to enforce this pattern.
