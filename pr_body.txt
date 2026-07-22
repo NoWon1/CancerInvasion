@@ -1,0 +1,5 @@
+🚨 Severity: MEDIUM
+💡 Vulnerability: The codebase contained multiple instances of bare `except:` blocks, which broadly catch all exceptions (including critical system signals like `KeyboardInterrupt` and `SystemExit`).
+🎯 Impact: This can prevent the program from gracefully terminating on critical system errors, potentially masking severe application-level crashes or creating localized Denial of Service (DoS) due to hanging processes that ignore kill signals.
+🔧 Fix: Replaced all 6 instances of bare `except:` with `except Exception:` in `Simulation/CancerInvasionSteppables.py`. This ensures only standard runtime errors are caught. Added an AST-based test to prevent regressions. Also updated `.gitignore` to prevent tracking compiled python files.
+✅ Verification: Ensure tests pass via `PYTHONPATH=$(pwd) python -m pytest` and no regression issues are detected.
