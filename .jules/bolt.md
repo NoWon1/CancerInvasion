@@ -1,0 +1,3 @@
+## 2024-07-24 - Avoid SWIG Out-of-Bounds Exceptions in CC3D Spatial Loops
+**Learning:** In CompuCell3D, triggering out-of-bounds SWIG object lookups (like `cell_field[x,y,0]`) throws exceptions that incur significant overhead. Using `try...except` to catch these bounds errors within tightly nested spatial loops severely degrades performance.
+**Action:** Always pre-calculate bounds using logical checks (like `0 <= nx < self.dim.x`) and explicit `min()`/`max()` functions to prevent SWIG from ever evaluating invalid coordinates rather than relying on exception handling.
