@@ -206,16 +206,15 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             pixels_cleared = 0
             search_radius = 15
+            # Bolt optimization: explicit dynamic boundaries avoid out-of-bounds SWIG exceptions,
+            # eliminating the need for slow try/except blocks in this tight spatial loop
             for x in range(max(0, int(cell.xCOM) - search_radius), 
                           min(self.dim.x, int(cell.xCOM) + search_radius)):
                 for y in range(max(0, int(cell.yCOM) - search_radius), 
                               min(self.dim.y, int(cell.yCOM) + search_radius)):
-                    try:
-                        if self.cell_field[x, y, 0] == cell:
-                            self.cell_field[x, y, 0] = None
-                            pixels_cleared += 1
-                    except:
-                        continue
+                    if self.cell_field[x, y, 0] == cell:
+                        self.cell_field[x, y, 0] = None
+                        pixels_cleared += 1
             return pixels_cleared > 0
         except Exception as e:
             return False
@@ -312,15 +311,14 @@ class CancerInvasionSteppable(SteppableBasePy):
             for dx in range(-3, 4):
                 for dy in range(-3, 4):
                     nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < 500 and 0 <= ny < 500:
-                        try:
-                            neighbor = self.cell_field[nx, ny, 0]
-                            if neighbor and neighbor.type == self.ECMFIBER:
-                                return True
-                        except:
-                            continue
+                    # Bolt optimization: Using logical bound checks (self.dim.x, self.dim.y) ensures
+                    # we don't throw out-of-bounds errors on SWIG arrays, saving try/except overhead
+                    if 0 <= nx < self.dim.x and 0 <= ny < self.dim.y:
+                        neighbor = self.cell_field[nx, ny, 0]
+                        if neighbor and neighbor.type == self.ECMFIBER:
+                            return True
             return False
-        except:
+        except Exception as e:
             return False
     
     def finish(self):
