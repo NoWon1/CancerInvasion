@@ -1,0 +1,4 @@
+## 2025-01-22 - Fix Bare Except Blocks in CC3D Spatial Loops
+**Vulnerability:** Simulation spatial loops used bare `except:` blocks when accessing cell properties, risking Denial of Service (DoS) by swallowing critical system signals like `KeyboardInterrupt` and `SystemExit`.
+**Learning:** In tightly coupled loop executions like CompuCell3D spatial sweeps, naive error handling logic (swallowing all exceptions) bypasses system interrupts and stops environments from shutting down cleanly.
+**Prevention:** Always replace bare `except:` with `except Exception:` when trapping local execution errors, or better, use boundary checking explicitly (e.g. `min()`, `max()`) to avoid throwing exceptions entirely.
