@@ -89,13 +89,11 @@ class CancerInvasionSteppable(SteppableBasePy):
                     pixels_assigned = 0
                     
                     for x, y in fiber_pixels:
-                        try:
+                        if 0 <= x < self.dim.x and 0 <= y < self.dim.y:
                             if self.cell_field[x, y, 0] is None:
                                 self.cell_field[x, y, 0] = fiber_cell
                                 self.fiber_locations.add((x, y))
                                 pixels_assigned += 1
-                        except:
-                            continue
                     
                     if pixels_assigned >= 10:
                         fibers_created += 1
@@ -175,13 +173,10 @@ class CancerInvasionSteppable(SteppableBasePy):
                 for dy in range(-radius, radius + 1):
                     if dx*dx + dy*dy <= radius*radius:
                         px, py = center_x + dx, center_y + dy
-                        if 0 <= px < 500 and 0 <= py < 500:
-                            try:
-                                if self.cell_field[px, py, 0] is None:
-                                    self.cell_field[px, py, 0] = cell
-                                    pixels_added += 1
-                            except:
-                                continue
+                        if 0 <= px < self.dim.x and 0 <= py < self.dim.y:
+                            if self.cell_field[px, py, 0] is None:
+                                self.cell_field[px, py, 0] = cell
+                                pixels_added += 1
             
             if pixels_added >= 20:
                 return True
@@ -210,12 +205,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                           min(self.dim.x, int(cell.xCOM) + search_radius)):
                 for y in range(max(0, int(cell.yCOM) - search_radius), 
                               min(self.dim.y, int(cell.yCOM) + search_radius)):
-                    try:
-                        if self.cell_field[x, y, 0] == cell:
-                            self.cell_field[x, y, 0] = None
-                            pixels_cleared += 1
-                    except:
-                        continue
+                    if self.cell_field[x, y, 0] == cell:
+                        self.cell_field[x, y, 0] = None
+                        pixels_cleared += 1
             return pixels_cleared > 0
         except Exception as e:
             return False
@@ -285,16 +277,13 @@ class CancerInvasionSteppable(SteppableBasePy):
             fibers_to_remove = []
             for cell in self.cell_list:
                 if cell.type == self.ECMFIBER:
-                    try:
-                        cx, cy = int(cell.xCOM), int(cell.yCOM)
-                        if 0 <= cx < 500 and 0 <= cy < 500:
-                            mmp_conc = mmp_field[cx, cy, 0]
-                            if mmp_conc >= self.degradation_threshold:
-                                fibers_to_remove.append(cell)
-                                # Paper: reduce MMP count by 1 after degradation
-                                mmp_field[cx, cy, 0] = max(0, mmp_conc - 1)
-                    except:
-                        continue
+                    cx, cy = int(cell.xCOM), int(cell.yCOM)
+                    if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
+                        mmp_conc = mmp_field[cx, cy, 0]
+                        if mmp_conc >= self.degradation_threshold:
+                            fibers_to_remove.append(cell)
+                            # Paper: reduce MMP count by 1 after degradation
+                            mmp_field[cx, cy, 0] = max(0, mmp_conc - 1)
             
             # Remove degraded fibers
             for fiber in fibers_to_remove:
@@ -312,13 +301,10 @@ class CancerInvasionSteppable(SteppableBasePy):
             for dx in range(-3, 4):
                 for dy in range(-3, 4):
                     nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < 500 and 0 <= ny < 500:
-                        try:
-                            neighbor = self.cell_field[nx, ny, 0]
-                            if neighbor and neighbor.type == self.ECMFIBER:
-                                return True
-                        except:
-                            continue
+                    if 0 <= nx < self.dim.x and 0 <= ny < self.dim.y:
+                        neighbor = self.cell_field[nx, ny, 0]
+                        if neighbor and neighbor.type == self.ECMFIBER:
+                            return True
             return False
         except:
             return False
@@ -371,11 +357,12 @@ class GrowthSteppable(SteppableBasePy):
                         contact_area += commonSurfaceArea
                 
                 if contact_area < self.crowding_threshold:
-                    try:
-                        mmp_conc = self.field.MMP[int(cell.xCOM), int(cell.yCOM), 0]
+                    cx, cy = int(cell.xCOM), int(cell.yCOM)
+                    if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
+                        mmp_conc = self.field.MMP[cx, cy, 0]
                         growth_boost = 1.0 + (mmp_conc * 0.1)
                         cell.targetVolume += self.growth_rate * growth_boost
-                    except:
+                    else:
                         cell.targetVolume += self.growth_rate
 
 
@@ -417,7 +404,7 @@ class ChemotaxisSteppable(SteppableBasePy):
             cx, cy = int(cell.xCOM), int(cell.yCOM)
             
             grad_x = grad_y = 0
-            if 2 <= cx < 498 and 2 <= cy < 498:
+            if 2 <= cx < self.dim.x - 2 and 2 <= cy < self.dim.y - 2:
                 grad_x = (mmp_field[cx+2, cy, 0] - mmp_field[cx-2, cy, 0]) / 4.0
                 grad_y = (mmp_field[cx, cy+2, 0] - mmp_field[cx, cy-2, 0]) / 4.0
             
