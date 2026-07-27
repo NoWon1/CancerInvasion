@@ -306,22 +306,20 @@ class CancerInvasionSteppable(SteppableBasePy):
             print(f"Error in MMP system: {e}")
     
     def check_ecm_contact(self, cell):
-        try:
-            cx, cy = int(cell.xCOM), int(cell.yCOM)
-            
-            for dx in range(-3, 4):
-                for dy in range(-3, 4):
-                    nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < 500 and 0 <= ny < 500:
-                        try:
-                            neighbor = self.cell_field[nx, ny, 0]
-                            if neighbor and neighbor.type == self.ECMFIBER:
-                                return True
-                        except:
-                            continue
-            return False
-        except:
-            return False
+        cx, cy = int(cell.xCOM), int(cell.yCOM)
+        dim_x, dim_y = self.dim.x, self.dim.y
+
+        min_x = max(0, cx - 3)
+        max_x = min(dim_x, cx + 4)
+        min_y = max(0, cy - 3)
+        max_y = min(dim_y, cy + 4)
+
+        for nx in range(min_x, max_x):
+            for ny in range(min_y, max_y):
+                neighbor = self.cell_field[nx, ny, 0]
+                if neighbor and neighbor.type == self.ECMFIBER:
+                    return True
+        return False
     
     def finish(self):
         try:
