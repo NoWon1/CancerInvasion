@@ -1,0 +1,3 @@
+## 2026-07-28 - Optimize CC3D spatial loop performance
+**Learning:** In CompuCell3D (CC3D) Python scripts, using `try...except` blocks inside tightly nested spatial loops for field accesses (like `self.cell_field`) creates significant overhead. Out-of-bounds SWIG object lookups throw exceptions, which makes exception-based boundary handling slow.
+**Action:** Use explicit dynamic boundary checks (e.g., using `min()`, `max()`, `self.dim.x`, `self.dim.y`) before accessing spatial arrays to avoid overhead from swallowed SWIG exceptions.
