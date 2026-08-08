@@ -1,0 +1,3 @@
+## 2024-05-24 - Avoid SWIG exception overhead in nested spatial loops
+**Learning:** In CompuCell3D, out-of-bounds array lookups via SWIG objects (like `self.cell_field[x, y, 0]`) throw Python exceptions. Catching these with a generic `try...except` inside tightly nested spatial loops incurs a significant performance penalty compared to doing a simple boundary check beforehand. Furthermore, hardcoding grid sizes (e.g., `500`) makes the code inflexible.
+**Action:** Always use explicit boundary checking (e.g., `0 <= x < self.dim.x` and `0 <= y < self.dim.y`) before accessing field SWIG objects, especially inside nested loops. Do not rely on `try...except` to catch `IndexError` or similar out-of-bounds exceptions for control flow.
