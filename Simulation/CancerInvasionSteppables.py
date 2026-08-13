@@ -65,12 +65,9 @@ class CancerInvasionSteppable(SteppableBasePy):
             pixels_cleared = 0
             for x in range(self.dim.x):
                 for y in range(self.dim.y):
-                    try:
-                        if self.cell_field[x, y, 0] == cell:
-                            self.cell_field[x, y, 0] = None
-                            pixels_cleared += 1
-                    except Exception:
-                        continue
+                    if self.cell_field[x, y, 0] == cell:
+                        self.cell_field[x, y, 0] = None
+                        pixels_cleared += 1
             return pixels_cleared > 0
         except Exception as e:
             print(f"Error in safe_cell_removal: {e}")
@@ -102,13 +99,11 @@ class CancerInvasionSteppable(SteppableBasePy):
                     pixels_assigned = 0
                     
                     for x, y in fiber_pixels:
-                        try:
+                        if 0 <= x < self.dim.x and 0 <= y < self.dim.y:
                             if self.cell_field[x, y, 0] is None:
                                 self.cell_field[x, y, 0] = fiber_cell
                                 self.fiber_locations.add((x, y))
                                 pixels_assigned += 1
-                        except Exception:
-                            continue
                     
                     if pixels_assigned >= 8:
                         fibers_created += 1
@@ -198,12 +193,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                     if dx*dx + dy*dy <= cell_radius*cell_radius:
                         px, py = center_x + dx, center_y + dy
                         if 0 <= px < 500 and 0 <= py < 500:
-                            try:
-                                if self.cell_field[px, py, 0] is None:
-                                    self.cell_field[px, py, 0] = cell
-                                    pixels_added += 1
-                            except Exception:
-                                continue
+                            if self.cell_field[px, py, 0] is None:
+                                self.cell_field[px, py, 0] = cell
+                                pixels_added += 1
             
             if pixels_added >= 20:  # Minimum viable cell
                 return True
@@ -290,24 +282,18 @@ class CancerInvasionSteppable(SteppableBasePy):
             for cell in self.cell_list:
                 if cell.type == self.CELL:
                     if self.check_simple_fiber_contact(cell):
-                        try:
-                            secretor.secreteInsideCell(cell, self.mmp_secretion_rate)
-                        except Exception:
-                            continue
+                        secretor.secreteInsideCell(cell, self.mmp_secretion_rate)
             
             # Simple fiber degradation
             fibers_to_remove = []
             for cell in self.cell_list:
                 if cell.type == self.ECMFIBER:
-                    try:
-                        cx, cy = int(cell.xCOM), int(cell.yCOM)
-                        if 0 <= cx < 500 and 0 <= cy < 500:
-                            mmp_conc = mmp_field[cx, cy, 0]
-                            if mmp_conc >= self.degradation_threshold:
-                                fibers_to_remove.append(cell)
-                                mmp_field[cx, cy, 0] = max(0, mmp_conc - 0.5)
-                    except Exception:
-                        continue
+                    cx, cy = int(cell.xCOM), int(cell.yCOM)
+                    if 0 <= cx < 500 and 0 <= cy < 500:
+                        mmp_conc = mmp_field[cx, cy, 0]
+                        if mmp_conc >= self.degradation_threshold:
+                            fibers_to_remove.append(cell)
+                            mmp_field[cx, cy, 0] = max(0, mmp_conc - 0.5)
             
             # Remove degraded fibers
             for fiber in fibers_to_remove:
@@ -327,12 +313,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                 for dy in range(-3, 4):
                     nx, ny = cx + dx, cy + dy
                     if 0 <= nx < 500 and 0 <= ny < 500:
-                        try:
-                            neighbor = self.cell_field[nx, ny, 0]
-                            if neighbor and neighbor.type == self.ECMFIBER:
-                                return True
-                        except Exception:
-                            continue
+                        neighbor = self.cell_field[nx, ny, 0]
+                        if neighbor and neighbor.type == self.ECMFIBER:
+                            return True
             return False
             
         except Exception as e:
