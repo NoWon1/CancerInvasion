@@ -132,12 +132,12 @@ class CancerInvasionSteppable(SteppableBasePy):
                 x = int(start_x + i * dx)
                 y = int(start_y + i * dy)
                 
-                if 50 <= x < 450 and 50 <= y < 450:
+                if 50 <= x < (self.dim.x - 50) and 50 <= y < (self.dim.y - 50):
                     pixels.append((x, y))
                     # Add slight thickness
                     for offset in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                         nx, ny = x + offset[0], y + offset[1]
-                        if 50 <= nx < 450 and 50 <= ny < 450:
+                        if 50 <= nx < (self.dim.x - 50) and 50 <= ny < (self.dim.y - 50):
                             if (nx, ny) not in pixels:
                                 pixels.append((nx, ny))
                                 
@@ -197,7 +197,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                 for dy in range(-cell_radius, cell_radius + 1):
                     if dx*dx + dy*dy <= cell_radius*cell_radius:
                         px, py = center_x + dx, center_y + dy
-                        if 0 <= px < 500 and 0 <= py < 500:
+                        if 0 <= px < self.dim.x and 0 <= py < self.dim.y:
                             try:
                                 if self.cell_field[px, py, 0] is None:
                                     self.cell_field[px, py, 0] = cell
@@ -301,7 +301,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                 if cell.type == self.ECMFIBER:
                     try:
                         cx, cy = int(cell.xCOM), int(cell.yCOM)
-                        if 0 <= cx < 500 and 0 <= cy < 500:
+                        if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
                             mmp_conc = mmp_field[cx, cy, 0]
                             if mmp_conc >= self.degradation_threshold:
                                 fibers_to_remove.append(cell)
@@ -326,7 +326,7 @@ class CancerInvasionSteppable(SteppableBasePy):
             for dx in range(-3, 4):
                 for dy in range(-3, 4):
                     nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < 500 and 0 <= ny < 500:
+                    if 0 <= nx < self.dim.x and 0 <= ny < self.dim.y:
                         try:
                             neighbor = self.cell_field[nx, ny, 0]
                             if neighbor and neighbor.type == self.ECMFIBER:
