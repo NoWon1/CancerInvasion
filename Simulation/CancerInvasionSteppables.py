@@ -90,8 +90,8 @@ class CancerInvasionSteppable(SteppableBasePy):
                     break
                     
                 # Generate fiber with safety checks
-                start_x = random.randint(100, 399)
-                start_y = random.randint(100, 399)
+                start_x = random.randint(100, self.dim.x - 101)
+                start_y = random.randint(100, self.dim.y - 101)
                 angle = random.uniform(0, 2 * math.pi)
                 
                 # Create simple linear fiber
@@ -150,7 +150,7 @@ class CancerInvasionSteppable(SteppableBasePy):
         """Create stable cancer cell cluster"""
         try:
             print("Creating stable cancer cell cluster...")
-            center_x, center_y = 250, 250
+            center_x, center_y = int(self.dim.x / 2), int(self.dim.y / 2)
             target_cells = 50  # Reduced for stability
             
             cells_created = 0
