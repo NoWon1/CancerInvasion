@@ -205,10 +205,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                           min(self.dim.x, int(cell.xCOM) + search_radius)):
                 for y in range(max(0, int(cell.yCOM) - search_radius), 
                               min(self.dim.y, int(cell.yCOM) + search_radius)):
-                    if 0 <= x < self.dim.x and 0 <= y < self.dim.y:
-                        if self.cell_field[x, y, 0] == cell:
-                            self.cell_field[x, y, 0] = None
-                            pixels_cleared += 1
+                    if self.cell_field[x, y, 0] == cell:
+                        self.cell_field[x, y, 0] = None
+                        pixels_cleared += 1
             return pixels_cleared > 0
         except Exception as e:
             return False
@@ -299,13 +298,16 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             cx, cy = int(cell.xCOM), int(cell.yCOM)
             
-            for dx in range(-3, 4):
-                for dy in range(-3, 4):
-                    nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < self.dim.x and 0 <= ny < self.dim.y:
-                        neighbor = self.cell_field[nx, ny, 0]
-                        if neighbor and neighbor.type == self.ECMFIBER:
-                            return True
+            nx_start = max(0, cx - 3)
+            nx_end = min(self.dim.x, cx + 4)
+            ny_start = max(0, cy - 3)
+            ny_end = min(self.dim.y, cy + 4)
+
+            for nx in range(nx_start, nx_end):
+                for ny in range(ny_start, ny_end):
+                    neighbor = self.cell_field[nx, ny, 0]
+                    if neighbor and neighbor.type == self.ECMFIBER:
+                        return True
             return False
         except:
             return False
