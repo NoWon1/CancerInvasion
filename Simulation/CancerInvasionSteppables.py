@@ -169,14 +169,20 @@ class CancerInvasionSteppable(SteppableBasePy):
             cell = self.new_cell(self.CELL)
             pixels_added = 0
             
-            for dx in range(-radius, radius + 1):
-                for dy in range(-radius, radius + 1):
+            # Bolt optimization: pre-calculate boundary limits
+            min_x = max(0, center_x - radius)
+            max_x = min(self.dim.x, center_x + radius + 1)
+            min_y = max(0, center_y - radius)
+            max_y = min(self.dim.y, center_y + radius + 1)
+
+            for px in range(min_x, max_x):
+                for py in range(min_y, max_y):
+                    dx = px - center_x
+                    dy = py - center_y
                     if dx*dx + dy*dy <= radius*radius:
-                        px, py = center_x + dx, center_y + dy
-                        if 0 <= px < self.dim.x and 0 <= py < self.dim.y:
-                            if self.cell_field[px, py, 0] is None:
-                                self.cell_field[px, py, 0] = cell
-                                pixels_added += 1
+                        if self.cell_field[px, py, 0] is None:
+                            self.cell_field[px, py, 0] = cell
+                            pixels_added += 1
             
             if pixels_added >= 20:
                 return True
@@ -201,14 +207,18 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             pixels_cleared = 0
             search_radius = 15
-            for x in range(max(0, int(cell.xCOM) - search_radius), 
-                          min(self.dim.x, int(cell.xCOM) + search_radius)):
-                for y in range(max(0, int(cell.yCOM) - search_radius), 
-                              min(self.dim.y, int(cell.yCOM) + search_radius)):
-                    if 0 <= x < self.dim.x and 0 <= y < self.dim.y:
-                        if self.cell_field[x, y, 0] == cell:
-                            self.cell_field[x, y, 0] = None
-                            pixels_cleared += 1
+
+            # Bolt optimization: explicit min/max for loops to avoid inner if
+            min_x = max(0, int(cell.xCOM) - search_radius)
+            max_x = min(self.dim.x, int(cell.xCOM) + search_radius)
+            min_y = max(0, int(cell.yCOM) - search_radius)
+            max_y = min(self.dim.y, int(cell.yCOM) + search_radius)
+
+            for x in range(min_x, max_x):
+                for y in range(min_y, max_y):
+                    if self.cell_field[x, y, 0] == cell:
+                        self.cell_field[x, y, 0] = None
+                        pixels_cleared += 1
             return pixels_cleared > 0
         except Exception as e:
             return False
@@ -299,13 +309,17 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             cx, cy = int(cell.xCOM), int(cell.yCOM)
             
-            for dx in range(-3, 4):
-                for dy in range(-3, 4):
-                    nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < self.dim.x and 0 <= ny < self.dim.y:
-                        neighbor = self.cell_field[nx, ny, 0]
-                        if neighbor and neighbor.type == self.ECMFIBER:
-                            return True
+            # Bolt optimization: restrict loops to valid boundaries
+            min_x = max(0, cx - 3)
+            max_x = min(self.dim.x, cx + 4)
+            min_y = max(0, cy - 3)
+            max_y = min(self.dim.y, cy + 4)
+
+            for nx in range(min_x, max_x):
+                for ny in range(min_y, max_y):
+                    neighbor = self.cell_field[nx, ny, 0]
+                    if neighbor and neighbor.type == self.ECMFIBER:
+                        return True
             return False
         except:
             return False
