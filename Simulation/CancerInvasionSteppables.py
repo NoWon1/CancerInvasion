@@ -299,15 +299,20 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             cx, cy = int(cell.xCOM), int(cell.yCOM)
             
-            for dx in range(-3, 4):
-                for dy in range(-3, 4):
-                    nx, ny = cx + dx, cy + dy
-                    if 0 <= nx < self.dim.x and 0 <= ny < self.dim.y:
-                        neighbor = self.cell_field[nx, ny, 0]
-                        if neighbor and neighbor.type == self.ECMFIBER:
-                            return True
+            # Bolt Optimization: Pre-calculate boundaries to avoid redundant if checks
+            # inside the nested spatial loop.
+            min_nx = max(0, cx - 3)
+            max_nx = min(self.dim.x, cx + 4)
+            min_ny = max(0, cy - 3)
+            max_ny = min(self.dim.y, cy + 4)
+
+            for nx in range(min_nx, max_nx):
+                for ny in range(min_ny, max_ny):
+                    neighbor = self.cell_field[nx, ny, 0]
+                    if neighbor and neighbor.type == self.ECMFIBER:
+                        return True
             return False
-        except:
+        except Exception:
             return False
     
     def finish(self):
