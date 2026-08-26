@@ -1,3 +1,3 @@
-## 2026-08-14 - Optimize CC3D SWIG Spatial Array Lookups
-**Learning:** SWIG object boundary exceptions in CompuCell3D (like out-of-bounds self.cell_field accesses) incur significant overhead within tightly nested spatial loops. Relying on try-except blocks instead of explicit boundary checks degrades performance.
-**Action:** Use explicit boundary checks (e.g., 0 <= x < self.dim.x) prior to accessing CC3D arrays to prevent SWIG lookup exceptions and improve speed.
+## 2024-05-24 - Optimize nested spatial loops in CompuCell3D
+**Learning:** In CompuCell3D, evaluating boundary expressions directly inside the inner loop's `range()` generator and running redundant `if` boundary checks inside tightly nested spatial loops incurs severe overhead. Additionally, out-of-bounds SWIG object lookups throw exceptions that are costly to catch.
+**Action:** Pre-calculate explicit `min`/`max` boundaries for loop variables before entering nested spatial loops to skip out-of-bounds iterations entirely, eliminate redundant conditional evaluations inside the loop, and prevent costly SWIG exceptions while retaining outer defensive `try-except` blocks.
