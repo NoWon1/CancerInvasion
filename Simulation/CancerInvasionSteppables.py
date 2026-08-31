@@ -174,14 +174,21 @@ class CancerInvasionSteppable(SteppableBasePy):
             cell = self.new_cell(self.CELL)
             pixels_added = 0
 
-            for dx in range(-radius, radius + 1):
-                for dy in range(-radius, radius + 1):
-                    if dx * dx + dy * dy <= radius * radius:
-                        px, py = center_x + dx, center_y + dy
-                        if 0 <= px < self.dim.x and 0 <= py < self.dim.y:
-                            if self.cell_field[px, py, 0] is None:
-                                self.cell_field[px, py, 0] = cell
-                                pixels_added += 1
+            # Bolt optimization: Pre-calculate min/max boundaries outside the spatial loop
+            # Expected impact: Eliminates redundant bounds checking inside tightly nested loops.
+            x_min = max(0, center_x - radius)
+            x_max = min(self.dim.x, center_x + radius + 1)
+            y_min = max(0, center_y - radius)
+            y_max = min(self.dim.y, center_y + radius + 1)
+
+            radius_sq = radius * radius
+
+            for px in range(x_min, x_max):
+                for py in range(y_min, y_max):
+                    if (px - center_x) ** 2 + (py - center_y) ** 2 <= radius_sq:
+                        if self.cell_field[px, py, 0] is None:
+                            self.cell_field[px, py, 0] = cell
+                            pixels_added += 1
 
             if pixels_added >= 20:
                 return True
