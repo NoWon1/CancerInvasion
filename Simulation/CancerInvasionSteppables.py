@@ -193,9 +193,11 @@ class CancerInvasionSteppable(SteppableBasePy):
             cell_radius = 5  # Smaller for stability
             pixels_added = 0
             
+            cell_radius_squared = cell_radius * cell_radius
+
             for dx in range(-cell_radius, cell_radius + 1):
                 for dy in range(-cell_radius, cell_radius + 1):
-                    if dx*dx + dy*dy <= cell_radius*cell_radius:
+                    if dx*dx + dy*dy <= cell_radius_squared:
                         px, py = center_x + dx, center_y + dy
                         if 0 <= px < self.dim.x and 0 <= py < self.dim.y:
                             try:
