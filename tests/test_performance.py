@@ -70,6 +70,7 @@ def create_steppable(cls):
     steppable.cell_field = CellFieldMock()
     steppable.field = FieldMock()
     steppable.cell_list = []
+    steppable.cell_list_by_type = lambda t: [c for c in steppable.cell_list if c.type == t]
 
     # Common type mock
     steppable.CELL = 1
