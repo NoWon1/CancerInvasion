@@ -253,25 +253,25 @@ class CancerInvasionSteppable(SteppableBasePy):
 
     def update_paper_cell_dynamics(self):
         try:
-            for cell in self.cell_list:
-                if cell.type == self.CELL:
-                    current_pos = [cell.xCOM, cell.yCOM]
+            # Bolt optimization: Fast type-specific iteration
+            for cell in self.cell_list_by_type(self.CELL):
+                current_pos = [cell.xCOM, cell.yCOM]
 
-                    if cell.id in self.cell_positions:
-                        prev_pos = self.cell_positions[cell.id]
-                        velocity = [
-                            current_pos[0] - prev_pos[0],
-                            current_pos[1] - prev_pos[1],
-                        ]
+                if cell.id in self.cell_positions:
+                    prev_pos = self.cell_positions[cell.id]
+                    velocity = [
+                        current_pos[0] - prev_pos[0],
+                        current_pos[1] - prev_pos[1],
+                    ]
 
-                        if cell.id not in self.cell_velocities:
-                            self.cell_velocities[cell.id] = []
-                        self.cell_velocities[cell.id].append(velocity)
+                    if cell.id not in self.cell_velocities:
+                        self.cell_velocities[cell.id] = []
+                    self.cell_velocities[cell.id].append(velocity)
 
-                        if len(self.cell_velocities[cell.id]) > self.polarity_memory:
-                            self.cell_velocities[cell.id].pop(0)
+                    if len(self.cell_velocities[cell.id]) > self.polarity_memory:
+                        self.cell_velocities[cell.id].pop(0)
 
-                    self.cell_positions[cell.id] = current_pos
+                self.cell_positions[cell.id] = current_pos
 
         except Exception as e:
             print(f"Error in cell dynamics: {e}")
@@ -285,27 +285,27 @@ class CancerInvasionSteppable(SteppableBasePy):
             mmp_field = self.field.MMP
 
             # Paper-based ECM-dependent MMP secretion
-            for cell in self.cell_list:
-                if cell.type == self.CELL:
-                    if self.check_ecm_contact(cell):
-                        # Paper: secretion rate converted to per-MCS
-                        # lambda = 0.05 s^-1 × 36 s/MCS = 1.8 per MCS
-                        try:
-                            self.mmp_secretor.secreteInsideCell(cell, 1.8)
-                        except Exception as e:
-                            print(f"Secretion error for cell {cell.id}: {e}")
+            # Bolt optimization: Fast type-specific iteration for CELL
+            for cell in self.cell_list_by_type(self.CELL):
+                if self.check_ecm_contact(cell):
+                    # Paper: secretion rate converted to per-MCS
+                    # lambda = 0.05 s^-1 × 36 s/MCS = 1.8 per MCS
+                    try:
+                        self.mmp_secretor.secreteInsideCell(cell, 1.8)
+                    except Exception as e:
+                        print(f"Secretion error for cell {cell.id}: {e}")
 
             # Paper: ECM degradation when MMP >= threshold (=1)
             fibers_to_remove = []
-            for cell in self.cell_list:
-                if cell.type == self.ECMFIBER:
-                    cx, cy = int(cell.xCOM), int(cell.yCOM)
-                    if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
-                        mmp_conc = mmp_field[cx, cy, 0]
-                        if mmp_conc >= self.degradation_threshold:
-                            fibers_to_remove.append(cell)
-                            # Paper: reduce MMP count by 1 after degradation
-                            mmp_field[cx, cy, 0] = max(0, mmp_conc - 1)
+            # Bolt optimization: Fast type-specific iteration for ECMFIBER
+            for cell in self.cell_list_by_type(self.ECMFIBER):
+                cx, cy = int(cell.xCOM), int(cell.yCOM)
+                if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
+                    mmp_conc = mmp_field[cx, cy, 0]
+                    if mmp_conc >= self.degradation_threshold:
+                        fibers_to_remove.append(cell)
+                        # Paper: reduce MMP count by 1 after degradation
+                        mmp_field[cx, cy, 0] = max(0, mmp_conc - 1)
 
             # Remove degraded fibers
             for fiber in fibers_to_remove:
@@ -379,23 +379,23 @@ class GrowthSteppable(SteppableBasePy):
                 cell.lambdaVolume = 1.0
 
     def step(self, mcs):
-        for cell in self.cell_list:
-            if cell.type == self.CELL:
-                contact_area = 0
-                for neighbor, commonSurfaceArea in self.get_cell_neighbor_data_list(
-                    cell
-                ):
-                    if neighbor and neighbor.type == self.CELL:
-                        contact_area += commonSurfaceArea
+        # Bolt optimization: Fast type-specific iteration
+        for cell in self.cell_list_by_type(self.CELL):
+            contact_area = 0
+            for neighbor, commonSurfaceArea in self.get_cell_neighbor_data_list(
+                cell
+            ):
+                if neighbor and neighbor.type == self.CELL:
+                    contact_area += commonSurfaceArea
 
-                if contact_area < self.crowding_threshold:
-                    cx, cy = int(cell.xCOM), int(cell.yCOM)
-                    if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
-                        mmp_conc = self.field.MMP[cx, cy, 0]
-                        growth_boost = 1.0 + (mmp_conc * 0.1)
-                        cell.targetVolume += self.growth_rate * growth_boost
-                    else:
-                        cell.targetVolume += self.growth_rate
+            if contact_area < self.crowding_threshold:
+                cx, cy = int(cell.xCOM), int(cell.yCOM)
+                if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
+                    mmp_conc = self.field.MMP[cx, cy, 0]
+                    growth_boost = 1.0 + (mmp_conc * 0.1)
+                    cell.targetVolume += self.growth_rate * growth_boost
+                else:
+                    cell.targetVolume += self.growth_rate
 
 
 class MitosisSteppable(MitosisSteppableBase):
@@ -405,8 +405,9 @@ class MitosisSteppable(MitosisSteppableBase):
 
     def step(self, mcs):
         cells_to_divide = []
-        for cell in self.cell_list:
-            if cell.type == self.CELL and cell.volume > self.division_volume:
+        # Bolt optimization: Fast type-specific iteration
+        for cell in self.cell_list_by_type(self.CELL):
+            if cell.volume > self.division_volume:
                 if random.random() < 0.01:
                     cells_to_divide.append(cell)
 
@@ -426,9 +427,9 @@ class ChemotaxisSteppable(SteppableBasePy):
         self.chemotaxis_strength = 50
 
     def step(self, mcs):
-        for cell in self.cell_list:
-            if cell.type == self.CELL:
-                self.apply_paper_chemotaxis(cell)
+        # Bolt optimization: Fast type-specific iteration
+        for cell in self.cell_list_by_type(self.CELL):
+            self.apply_paper_chemotaxis(cell)
 
     def apply_paper_chemotaxis(self, cell):
         try:
