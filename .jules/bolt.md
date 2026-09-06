@@ -4,3 +4,6 @@
 ## 2026-08-30 - Pre-calculate nested spatial loops bounds in CC3D
 **Learning:** Checking boundary conditions (e.g., `0 <= x < self.dim.x`) during *every single iteration* inside tightly nested loops degrades performance in operations executed frequently per MCS (like cell removals or checking neighborhood contacts).
 **Action:** When a bounding box is known relative to a central coordinate, use `min` and `max` with grid dimensions *outside* the loop to strictly bound the `range()` generators, completely eliminating conditionally evaluated boundary checks inside the innermost loop body.
+## 2024-05-20 - Fast typed cell iteration in CC3D
+**Learning:** Iterating over the entire cell list and performing manual type checks in Python is slow for large populations.
+**Action:** Always prefer using `self.cell_list_by_type(self.CELL_TYPE)` over manual iteration when applying logic specific to a single cell type.

@@ -75,6 +75,9 @@ def create_steppable(cls):
     steppable.CELL = 1
     steppable.ECMFIBER = 2
 
+    # Mock cell_list_by_type
+    steppable.cell_list_by_type = lambda t: [c for c in steppable.cell_list if c.type == t]
+
     # Mock methods
     def mock_new_cell(cell_type):
         return MacroscopicCellMock(cell_type, 999)
