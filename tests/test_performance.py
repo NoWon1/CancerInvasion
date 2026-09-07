@@ -50,16 +50,29 @@ class FieldMock:
     def __init__(self):
         self.MMP = MMPFieldMock()
 
-# Setup mocks in sys.modules
+# Setup mocks in sys.modules (restore in teardown_module to avoid leaking into other tests)
+_ORIGINAL_MODULES = {
+    name: sys.modules.get(name)
+    for name in ("cc3d", "cc3d.core", "cc3d.core.PySteppables")
+}
+
 mock_cc3d = MagicMock()
 mock_cc3d_core = MagicMock()
 mock_cc3d_core_PySteppables = MagicMock()
 mock_cc3d_core_PySteppables.SteppableBasePy = SteppableBasePy
 mock_cc3d_core_PySteppables.MitosisSteppableBase = MitosisSteppableBase
 
-sys.modules['cc3d'] = mock_cc3d
-sys.modules['cc3d.core'] = mock_cc3d_core
-sys.modules['cc3d.core.PySteppables'] = mock_cc3d_core_PySteppables
+sys.modules["cc3d"] = mock_cc3d
+sys.modules["cc3d.core"] = mock_cc3d_core
+sys.modules["cc3d.core.PySteppables"] = mock_cc3d_core_PySteppables
+
+
+def teardown_module(module):
+    for name, mod in _ORIGINAL_MODULES.items():
+        if mod is None:
+            sys.modules.pop(name, None)
+        else:
+            sys.modules[name] = mod
 
 # Now we can import the module
 from Simulation.CancerInvasionSteppables import CancerInvasionSteppable, GrowthSteppable, ChemotaxisSteppable
