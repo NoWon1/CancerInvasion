@@ -238,10 +238,8 @@ class CancerInvasionSteppable(SteppableBasePy):
             self.step_count = mcs
 
             if mcs % 50 == 0:
-                cancer_count = len([c for c in self.cell_list if c.type == self.CELL])
-                fiber_count = len(
-                    [c for c in self.cell_list if c.type == self.ECMFIBER]
-                )
+                cancer_count = len(list(self.cell_list_by_type(self.CELL)))
+                fiber_count = len(list(self.cell_list_by_type(self.ECMFIBER)))
                 print(f"MCS {mcs}: Cells={cancer_count}, Fibers={fiber_count}")
 
             self.update_paper_cell_dynamics()
@@ -336,7 +334,7 @@ class CancerInvasionSteppable(SteppableBasePy):
 
     def finish(self):
         try:
-            cancer_cells = [c for c in self.cell_list if c.type == self.CELL]
+            cancer_cells = list(self.cell_list_by_type(self.CELL))
 
             if cancer_cells and self.initial_positions:
                 translocations = []
