@@ -329,7 +329,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                     if neighbor and neighbor.type == self.ECMFIBER:
                         return True
             return False
-        except:
+        except Exception:
             return False
 
     def finish(self):
