@@ -114,17 +114,22 @@ def test_safe_cell_removal_no_exception():
 
 def test_paper_mmp_system_no_exception():
     steppable = create_steppable(CancerInvasionSteppable)
+    steppable.mmp_secretor = MagicMock()
 
-    # Add a fiber cell near the edge
+    # Force secretion path to run
+    steppable.check_ecm_contact = lambda cell: True
+    cancer = MacroscopicCellMock(1, 1)
+    steppable.cell_list.append(cancer)
+
+    # Add a fiber cell near the edge and set MMP high enough to trigger degradation
     fiber = MacroscopicCellMock(2, 2)
     fiber.xCOM = 498
     fiber.yCOM = 498
     steppable.cell_list.append(fiber)
+    steppable.field.MMP[fiber.xCOM, fiber.yCOM, 0] = steppable.degradation_threshold
 
-    try:
-        steppable.paper_mmp_system()
-    except Exception as e:
-        pytest.fail(f"paper_mmp_system raised exception: {e}")
+    steppable.paper_mmp_system()
+    steppable.mmp_secretor.secreteInsideCell.assert_called()
 
 def test_check_ecm_contact_no_exception():
     steppable = create_steppable(CancerInvasionSteppable)
