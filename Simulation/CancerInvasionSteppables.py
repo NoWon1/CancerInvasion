@@ -212,14 +212,13 @@ class CancerInvasionSteppable(SteppableBasePy):
     def safe_cell_removal(self, cell):
         try:
             pixels_cleared = 0
-            search_radius = 15
-            # Bolt optimization: Pre-calculate min/max boundaries outside the spatial loop
-            # Expected impact: Eliminates redundant bounds checking inside tightly nested loops,
-            # speeding up execution of highly frequent cell removals.
+            # Ensure the search window fully covers the cell/fiber footprint.
+            approx_radius = int(math.sqrt(getattr(cell, "volume", 0) / math.pi)) if getattr(cell, "volume", 0) else 0
+            search_radius = max(15, approx_radius + 5, getattr(self, "fiber_length_max", 0) + 5)
             x_min = max(0, int(cell.xCOM) - search_radius)
-            x_max = min(self.dim.x, int(cell.xCOM) + search_radius)
+            x_max = min(self.dim.x, int(cell.xCOM) + search_radius + 1)
             y_min = max(0, int(cell.yCOM) - search_radius)
-            y_max = min(self.dim.y, int(cell.yCOM) + search_radius)
+            y_max = min(self.dim.y, int(cell.yCOM) + search_radius + 1)
 
             for x in range(x_min, x_max):
                 for y in range(y_min, y_max):
