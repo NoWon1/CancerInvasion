@@ -380,6 +380,11 @@ class GrowthSteppable(SteppableBasePy):
             ):
                 if neighbor and neighbor.type == self.CELL:
                     contact_area += commonSurfaceArea
+                    # Bolt optimization: Break early once crowding threshold is met
+                    # Expected impact: Avoids expensive SWIG Python object instantiation
+                    # for the remaining neighbors in the C++ list.
+                    if contact_area >= self.crowding_threshold:
+                        break
 
             if contact_area < self.crowding_threshold:
                 cx, cy = int(cell.xCOM), int(cell.yCOM)
