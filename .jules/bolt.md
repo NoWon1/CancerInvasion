@@ -7,3 +7,6 @@
 ## 2024-05-20 - Fast typed cell iteration in CC3D
 **Learning:** Iterating over the entire cell list and performing manual type checks in Python is slow for large populations.
 **Action:** Always prefer using `self.cell_list_by_type(self.CELL_TYPE)` over manual iteration when applying logic specific to a single cell type.
+## 2026-09-08 - Fast CC3D neighbor iterator break
+**Learning:** In CompuCell3D, breaking early from neighbor iterators (like `get_cell_neighbor_data_list`) avoids lazy SWIG instantiation of neighbor cell Python objects for the remainder of the C++ list, significantly reducing overhead in hot loops.
+**Action:** Always break from CC3D neighbor iteration loops as soon as a required condition (like a contact area threshold) is met.
