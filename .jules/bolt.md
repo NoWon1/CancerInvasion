@@ -10,3 +10,6 @@
 ## 2026-09-08 - Fast CC3D neighbor iterator break
 **Learning:** In CompuCell3D, breaking early from neighbor iterators (like `get_cell_neighbor_data_list`) avoids lazy SWIG instantiation of neighbor cell Python objects for the remainder of the C++ list, significantly reducing overhead in hot loops.
 **Action:** Always break from CC3D neighbor iteration loops as soon as a required condition (like a contact area threshold) is met.
+## 2026-09-09 - Safe Cell Removal with Pixel Lists in CC3D
+**Learning:** Replacing bounding-box pixel searches with `self.get_cell_pixel_list(cell)` is a massive performance win in CC3D, but modifying the `cell_field` while directly iterating over this list invalidates the underlying C++ iterator, breaking the simulation.
+**Action:** Always materialize the CC3D C++ pixel list into a Python list (e.g., `pixels = [(pt.pixel.x, pt.pixel.y, pt.pixel.z) for pt in self.get_cell_pixel_list(cell)]`) BEFORE iterating to modify the field.
