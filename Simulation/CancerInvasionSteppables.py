@@ -212,19 +212,16 @@ class CancerInvasionSteppable(SteppableBasePy):
     def safe_cell_removal(self, cell):
         try:
             pixels_cleared = 0
-            # Ensure the search window fully covers the cell/fiber footprint.
-            approx_radius = int(math.sqrt(getattr(cell, "volume", 0) / math.pi)) if getattr(cell, "volume", 0) else 0
-            search_radius = max(15, approx_radius + 5, getattr(self, "fiber_length_max", 0) + 5)
-            x_min = max(0, int(cell.xCOM) - search_radius)
-            x_max = min(self.dim.x, int(cell.xCOM) + search_radius + 1)
-            y_min = max(0, int(cell.yCOM) - search_radius)
-            y_max = min(self.dim.y, int(cell.yCOM) + search_radius + 1)
-
-            for x in range(x_min, x_max):
-                for y in range(y_min, y_max):
-                    if self.cell_field[x, y, 0] == cell:
-                        self.cell_field[x, y, 0] = None
-                        pixels_cleared += 1
+            # Bolt optimization: Iterate directly over the cell's pixel list
+            # Expected impact: Significantly faster than checking every pixel in a bounding box,
+            # especially for fibers or small cells, as it eliminates unnecessary grid lookups.
+            # Must materialize the list to avoid invalidating the C++ iterator
+            # when modifying the field.
+            pixels = [(pt_data.pixel.x, pt_data.pixel.y, pt_data.pixel.z) for pt_data in self.get_cell_pixel_list(cell)]
+            for px, py, pz in pixels:
+                if self.cell_field[px, py, pz] == cell:
+                    self.cell_field[px, py, pz] = None
+                    pixels_cleared += 1
             return pixels_cleared > 0
         except Exception as e:
             return False
