@@ -294,15 +294,17 @@ class CancerInvasionSteppable(SteppableBasePy):
                 if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
                     mmp_conc = mmp_field[cx, cy, 0]
                     if mmp_conc >= self.degradation_threshold:
-                        fibers_to_remove.append(cell)
+                        # Bolt optimization: Cache xCOM/yCOM properties in list
+                        # Expected impact: Reduce expensive SWIG property evaluations when removing cells later
+                        fibers_to_remove.append((cell, cx, cy))
                         # Paper: reduce MMP count by 1 after degradation
                         mmp_field[cx, cy, 0] = max(0, mmp_conc - 1)
 
             # Remove degraded fibers
-            for fiber in fibers_to_remove:
+            for fiber, cx, cy in fibers_to_remove:
                 self.safe_cell_removal(fiber)
-                if (int(fiber.xCOM), int(fiber.yCOM)) in self.fiber_locations:
-                    self.fiber_locations.remove((int(fiber.xCOM), int(fiber.yCOM)))
+                if (cx, cy) in self.fiber_locations:
+                    self.fiber_locations.remove((cx, cy))
 
         except Exception as e:
             print(f"Error in MMP system: {e}")

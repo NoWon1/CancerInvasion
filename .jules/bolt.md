@@ -13,3 +13,6 @@
 ## 2026-09-09 - Safe Cell Removal with Pixel Lists in CC3D
 **Learning:** Replacing bounding-box pixel searches with `self.get_cell_pixel_list(cell)` is a massive performance win in CC3D, but modifying the `cell_field` while directly iterating over this list invalidates the underlying C++ iterator, breaking the simulation.
 **Action:** Always materialize the CC3D C++ pixel list into a Python list (e.g., `pixels = [(pt.pixel.x, pt.pixel.y, pt.pixel.z) for pt in self.get_cell_pixel_list(cell)]`) BEFORE iterating to modify the field.
+## 2026-09-10 - Cache SWIG properties
+**Learning:** Redundant SWIG boundary crossings (like accessing cell properties) in CC3D are computationally expensive.
+**Action:** Cache these properties in local variables instead of recalculating them multiple times.
