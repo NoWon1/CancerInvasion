@@ -201,11 +201,10 @@ class CancerInvasionSteppable(SteppableBasePy):
 
     def initialize_tracking(self):
         try:
-            for cell in self.cell_list:
-                if cell.type == self.CELL:
-                    self.cell_positions[cell.id] = [cell.xCOM, cell.yCOM]
-                    self.cell_velocities[cell.id] = []
-                    self.initial_positions[cell.id] = [cell.xCOM, cell.yCOM]
+            for cell in self.cell_list_by_type(self.CELL):
+                self.cell_positions[cell.id] = [cell.xCOM, cell.yCOM]
+                self.cell_velocities[cell.id] = []
+                self.initial_positions[cell.id] = [cell.xCOM, cell.yCOM]
         except Exception as e:
             print(f"Error in tracking initialization: {e}")
 
@@ -366,10 +365,9 @@ class GrowthSteppable(SteppableBasePy):
         self.crowding_threshold = 30
 
     def start(self):
-        for cell in self.cell_list:
-            if cell.type == self.CELL:
-                cell.targetVolume = 400
-                cell.lambdaVolume = 1.0
+        for cell in self.cell_list_by_type(self.CELL):
+            cell.targetVolume = 400
+            cell.lambdaVolume = 1.0
 
     def step(self, mcs):
         for cell in self.cell_list_by_type(self.CELL):
