@@ -248,22 +248,25 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             for cell in self.cell_list_by_type(self.CELL):
                 current_pos = [cell.xCOM, cell.yCOM]
+                # Bolt optimization: Cache cell.id to a local variable
+                # Expected impact: Reduce redundant and expensive SWIG property evaluations per cell per step.
+                cell_id = cell.id
 
-                if cell.id in self.cell_positions:
-                    prev_pos = self.cell_positions[cell.id]
+                if cell_id in self.cell_positions:
+                    prev_pos = self.cell_positions[cell_id]
                     velocity = [
                         current_pos[0] - prev_pos[0],
                         current_pos[1] - prev_pos[1],
                     ]
 
-                    if cell.id not in self.cell_velocities:
-                        self.cell_velocities[cell.id] = []
-                    self.cell_velocities[cell.id].append(velocity)
+                    if cell_id not in self.cell_velocities:
+                        self.cell_velocities[cell_id] = []
+                    self.cell_velocities[cell_id].append(velocity)
 
-                    if len(self.cell_velocities[cell.id]) > self.polarity_memory:
-                        self.cell_velocities[cell.id].pop(0)
+                    if len(self.cell_velocities[cell_id]) > self.polarity_memory:
+                        self.cell_velocities[cell_id].pop(0)
 
-                self.cell_positions[cell.id] = current_pos
+                self.cell_positions[cell_id] = current_pos
 
         except Exception as e:
             print(f"Error in cell dynamics: {e}")
