@@ -407,6 +407,9 @@ class MitosisSteppable(MitosisSteppableBase):
             if cell.volume > self.division_volume:
                 if random.random() < 0.01:
                     cells_to_divide.append(cell)
+                    # Bolt optimization: Break early once a cell is selected for division
+                    # Expected impact: Avoids unnecessary O(N) volume evaluations and random number generations for remaining cells.
+                    break
 
         for cell in cells_to_divide[:1]:
             self.divide_cell_random_orientation(cell)
