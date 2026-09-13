@@ -16,3 +16,6 @@
 ## 2026-09-10 - Cache SWIG properties
 **Learning:** Redundant SWIG boundary crossings (like accessing cell properties) in CC3D are computationally expensive.
 **Action:** Cache these properties in local variables instead of recalculating them multiple times.
+## 2026-09-11 - Fast single-target population loops
+**Learning:** Iterating over an entire cell population to find a single target (like a cell ready for mitosis when only one divides per step) wastes O(N) evaluations of cell properties.
+**Action:** Add an early `break` as soon as the target cell is found to prevent unnecessary SWIG overhead for the remaining cells.
