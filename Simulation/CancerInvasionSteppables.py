@@ -15,6 +15,11 @@ class CancerInvasionSteppable(SteppableBasePy):
         self.polarity_memory = 10
         self.degradation_threshold = 1.0
         
+        # Cluster initialization constants
+        self.cluster_center_x = 250
+        self.cluster_center_y = 250
+        self.cluster_target_cells = 50
+
         # Simple tracking without PixelTracker dependency
         self.cell_positions = {}
         self.cell_velocities = {}
@@ -150,8 +155,8 @@ class CancerInvasionSteppable(SteppableBasePy):
         """Create stable cancer cell cluster"""
         try:
             print("Creating stable cancer cell cluster...")
-            center_x, center_y = 250, 250
-            target_cells = 50  # Reduced for stability
+            center_x, center_y = self.cluster_center_x, self.cluster_center_y
+            target_cells = self.cluster_target_cells  # Reduced for stability
             
             cells_created = 0
             
