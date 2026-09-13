@@ -59,18 +59,20 @@ class CancerInvasionSteppable(SteppableBasePy):
             self.simulation_failed = True
             
     def safe_cell_removal(self, cell):
-        """Safely remove cell without PixelTracker dependency"""
+        """Safely remove cell using pixel list to avoid full lattice scan"""
         try:
-            # Manual pixel clearing
             pixels_cleared = 0
-            for x in range(self.dim.x):
-                for y in range(self.dim.y):
-                    try:
-                        if self.cell_field[x, y, 0] == cell:
-                            self.cell_field[x, y, 0] = None
-                            pixels_cleared += 1
-                    except (IndexError, KeyError):
-                        continue
+            # Materialize the list of pixels before iterating
+            pixels = [(pt.pixel.x, pt.pixel.y, pt.pixel.z)
+                      for pt in self.get_cell_pixel_list(cell)]
+
+            for x, y, z in pixels:
+                try:
+                    if self.cell_field[x, y, z] == cell:
+                        self.cell_field[x, y, z] = None
+                        pixels_cleared += 1
+                except (IndexError, KeyError):
+                    continue
             return pixels_cleared > 0
         except Exception as e:
             print(f"Error in safe_cell_removal: {e}")
