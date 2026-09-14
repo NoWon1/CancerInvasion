@@ -323,10 +323,14 @@ class CancerInvasionSteppable(SteppableBasePy):
             y_min = max(0, cy - 3)
             y_max = min(self.dim.y, cy + 4)
 
+            # Bolt optimization: Cache SWIG property before spatial loop
+            # Expected impact: Eliminates redundant evaluations of self.ECMFIBER in nested loops.
+            ecm_fiber_type = self.ECMFIBER
+
             for nx in range(x_min, x_max):
                 for ny in range(y_min, y_max):
                     neighbor = self.cell_field[nx, ny, 0]
-                    if neighbor and neighbor.type == self.ECMFIBER:
+                    if neighbor and neighbor.type == ecm_fiber_type:
                         return True
             return False
         except Exception:
