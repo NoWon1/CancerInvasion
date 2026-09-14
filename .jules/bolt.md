@@ -19,3 +19,6 @@
 ## 2026-09-11 - Fast single-target population loops
 **Learning:** Iterating over an entire cell population to find a single target (like a cell ready for mitosis when only one divides per step) wastes O(N) evaluations of cell properties.
 **Action:** Add an early `break` as soon as the target cell is found to prevent unnecessary SWIG overhead for the remaining cells.
+## 2024-09-14 - Caching SWIG properties in nested loops
+**Learning:** Redundant SWIG property lookups (like self.ECMFIBER) inside tight spatial loops are computationally expensive in CompuCell3D.
+**Action:** Cache these properties in local variables before entering nested loops to eliminate redundant evaluations.
