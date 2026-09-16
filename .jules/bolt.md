@@ -22,3 +22,6 @@
 ## 2024-09-14 - Caching SWIG properties in nested loops
 **Learning:** Redundant SWIG property lookups (like self.ECMFIBER) inside tight spatial loops are computationally expensive in CompuCell3D.
 **Action:** Cache these properties in local variables before entering nested loops to eliminate redundant evaluations.
+## 2026-09-17 - Cache self.dim properties to avoid SWIG overhead
+**Learning:** Redundant SWIG property lookups (like self.dim.x and self.dim.y) inside spatial loops and population loops are computationally expensive in CompuCell3D.
+**Action:** Cache these properties in local variables before entering loops to eliminate redundant evaluations.

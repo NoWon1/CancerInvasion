@@ -290,10 +290,14 @@ class CancerInvasionSteppable(SteppableBasePy):
                         print(f"Secretion error for cell {cell.id}: {e}")
 
             # Paper: ECM degradation when MMP >= threshold (=1)
+            # Bolt optimization: Cache self.dim properties outside loop
+            # Expected impact: Reduce expensive SWIG property evaluations per cell.
+            dim_x = self.dim.x
+            dim_y = self.dim.y
             fibers_to_remove = []
             for cell in self.cell_list_by_type(self.ECMFIBER):
                 cx, cy = int(cell.xCOM), int(cell.yCOM)
-                if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
+                if 0 <= cx < dim_x and 0 <= cy < dim_y:
                     mmp_conc = mmp_field[cx, cy, 0]
                     if mmp_conc >= self.degradation_threshold:
                         # Bolt optimization: Cache xCOM/yCOM properties in list
@@ -377,6 +381,10 @@ class GrowthSteppable(SteppableBasePy):
             cell.lambdaVolume = 1.0
 
     def step(self, mcs):
+        # Bolt optimization: Cache self.dim properties outside loop
+        # Expected impact: Reduce expensive SWIG property evaluations per cell.
+        dim_x = self.dim.x
+        dim_y = self.dim.y
         for cell in self.cell_list_by_type(self.CELL):
             contact_area = 0
             for neighbor, commonSurfaceArea in self.get_cell_neighbor_data_list(
@@ -392,7 +400,7 @@ class GrowthSteppable(SteppableBasePy):
 
             if contact_area < self.crowding_threshold:
                 cx, cy = int(cell.xCOM), int(cell.yCOM)
-                if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
+                if 0 <= cx < dim_x and 0 <= cy < dim_y:
                     mmp_conc = self.field.MMP[cx, cy, 0]
                     growth_boost = 1.0 + (mmp_conc * 0.1)
                     cell.targetVolume += self.growth_rate * growth_boost
@@ -431,16 +439,20 @@ class ChemotaxisSteppable(SteppableBasePy):
         self.chemotaxis_strength = 50
 
     def step(self, mcs):
+        # Bolt optimization: Cache self.dim properties outside loop
+        # Expected impact: Reduce expensive SWIG property evaluations per cell.
+        dim_x = self.dim.x
+        dim_y = self.dim.y
         for cell in self.cell_list_by_type(self.CELL):
-            self.apply_paper_chemotaxis(cell)
+            self.apply_paper_chemotaxis(cell, dim_x, dim_y)
 
-    def apply_paper_chemotaxis(self, cell):
+    def apply_paper_chemotaxis(self, cell, dim_x, dim_y):
         try:
             mmp_field = self.field.MMP
             cx, cy = int(cell.xCOM), int(cell.yCOM)
 
             grad_x = grad_y = 0
-            if 2 <= cx < self.dim.x - 2 and 2 <= cy < self.dim.y - 2:
+            if 2 <= cx < dim_x - 2 and 2 <= cy < dim_y - 2:
                 grad_x = (mmp_field[cx + 2, cy, 0] - mmp_field[cx - 2, cy, 0]) / 4.0
                 grad_y = (mmp_field[cx, cy + 2, 0] - mmp_field[cx, cy - 2, 0]) / 4.0
 
