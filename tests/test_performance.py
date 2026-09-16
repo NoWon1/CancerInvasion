@@ -179,6 +179,6 @@ def test_chemotaxis_steppable_apply_no_exception():
     cell.yCOM = 1
 
     try:
-        steppable.apply_paper_chemotaxis(cell)
+        steppable.apply_paper_chemotaxis(cell, steppable.dim.x, steppable.dim.y)
     except Exception as e:
         pytest.fail(f"ChemotaxisSteppable.apply_paper_chemotaxis raised exception: {e}")
