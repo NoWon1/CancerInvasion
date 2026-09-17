@@ -22,3 +22,6 @@
 ## 2024-09-14 - Caching SWIG properties in nested loops
 **Learning:** Redundant SWIG property lookups (like self.ECMFIBER) inside tight spatial loops are computationally expensive in CompuCell3D.
 **Action:** Cache these properties in local variables before entering nested loops to eliminate redundant evaluations.
+## 2026-10-24 - Pre-calculate nested spatial loops bounds in CC3D
+**Learning:** In Python nested loops (like spatial loops in CompuCell3D), passing complex expressions or SWIG boundaries directly into an inner loop's `range()` definition or conditionally checking them inside the innermost loop body causes them to be repeatedly evaluated for every iteration of the outer loop.
+**Action:** When a bounding box is known relative to a central coordinate, use `min` and `max` with grid dimensions *outside* the loop to strictly bound the `range()` generators, completely eliminating conditionally evaluated boundary checks inside the innermost loop body. Cache these dimensions as local variables prior to entering the loop.

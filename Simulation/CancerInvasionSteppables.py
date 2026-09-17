@@ -377,12 +377,18 @@ class GrowthSteppable(SteppableBasePy):
             cell.lambdaVolume = 1.0
 
     def step(self, mcs):
-        for cell in self.cell_list_by_type(self.CELL):
+        # Bolt optimization: Cache SWIG properties outside spatial loops
+        # Expected impact: Eliminates redundant SWIG evaluations in nested loops.
+        cell_type = self.CELL
+        dim_x, dim_y = self.dim.x, self.dim.y
+        mmp_field = self.field.MMP
+
+        for cell in self.cell_list_by_type(cell_type):
             contact_area = 0
             for neighbor, commonSurfaceArea in self.get_cell_neighbor_data_list(
                 cell
             ):
-                if neighbor and neighbor.type == self.CELL:
+                if neighbor and neighbor.type == cell_type:
                     contact_area += commonSurfaceArea
                     # Bolt optimization: Break early once crowding threshold is met
                     # Expected impact: Avoids expensive SWIG Python object instantiation
@@ -392,8 +398,8 @@ class GrowthSteppable(SteppableBasePy):
 
             if contact_area < self.crowding_threshold:
                 cx, cy = int(cell.xCOM), int(cell.yCOM)
-                if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
-                    mmp_conc = self.field.MMP[cx, cy, 0]
+                if 0 <= cx < dim_x and 0 <= cy < dim_y:
+                    mmp_conc = mmp_field[cx, cy, 0]
                     growth_boost = 1.0 + (mmp_conc * 0.1)
                     cell.targetVolume += self.growth_rate * growth_boost
                 else:
