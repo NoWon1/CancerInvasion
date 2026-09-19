@@ -25,3 +25,6 @@
 ## 2026-10-24 - Pre-calculate nested spatial loops bounds in CC3D
 **Learning:** In Python nested loops (like spatial loops in CompuCell3D), passing complex expressions or SWIG boundaries directly into an inner loop's `range()` definition or conditionally checking them inside the innermost loop body causes them to be repeatedly evaluated for every iteration of the outer loop.
 **Action:** When a bounding box is known relative to a central coordinate, use `min` and `max` with grid dimensions *outside* the loop to strictly bound the `range()` generators, completely eliminating conditionally evaluated boundary checks inside the innermost loop body. Cache these dimensions as local variables prior to entering the loop.
+## 2026-12-08 - Cache SWIG properties in hot iteration functions in CC3D
+**Learning:** Accessing SWIG boundary properties (like `self.dim` or `self.field`) directly inside per-cell calculations incurring hot loop traversals (like chemotaxis) imposes high overhead due to repeated boundary crossings.
+**Action:** Cache these properties as local variables once per simulation step in the main outer loop and pass them as arguments to per-cell helper functions, completely eliminating redundant SWIG evaluations per cell.
