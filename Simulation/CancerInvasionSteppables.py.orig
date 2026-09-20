@@ -437,21 +437,16 @@ class ChemotaxisSteppable(SteppableBasePy):
         self.chemotaxis_strength = 50
 
     def step(self, mcs):
-        # Bolt optimization: Cache SWIG properties once per step
-        # Expected impact: Eliminates redundant SWIG boundary evaluations in helper function for each cell.
-        mmp_field = self.field.MMP
-        dim_x = self.dim.x
-        dim_y = self.dim.y
-
         for cell in self.cell_list_by_type(self.CELL):
-            self.apply_paper_chemotaxis(cell, mmp_field, dim_x, dim_y)
+            self.apply_paper_chemotaxis(cell)
 
-    def apply_paper_chemotaxis(self, cell, mmp_field, dim_x, dim_y):
+    def apply_paper_chemotaxis(self, cell):
         try:
+            mmp_field = self.field.MMP
             cx, cy = int(cell.xCOM), int(cell.yCOM)
 
             grad_x = grad_y = 0
-            if 2 <= cx < dim_x - 2 and 2 <= cy < dim_y - 2:
+            if 2 <= cx < self.dim.x - 2 and 2 <= cy < self.dim.y - 2:
                 grad_x = (mmp_field[cx + 2, cy, 0] - mmp_field[cx - 2, cy, 0]) / 4.0
                 grad_y = (mmp_field[cx, cy + 2, 0] - mmp_field[cx, cy - 2, 0]) / 4.0
 
