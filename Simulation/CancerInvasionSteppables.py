@@ -279,9 +279,16 @@ class CancerInvasionSteppable(SteppableBasePy):
 
             mmp_field = self.field.MMP
 
+            # Bolt optimization: Cache SWIG properties in the main step loop
+            # Expected impact: Eliminates redundant SWIG boundary evaluations in helper function for each cell.
+            dim_x = self.dim.x
+            dim_y = self.dim.y
+            ecm_fiber_type = self.ECMFIBER
+            cell_field = self.cell_field
+
             # Paper-based ECM-dependent MMP secretion
             for cell in self.cell_list_by_type(self.CELL):
-                if self.check_ecm_contact(cell):
+                if self.check_ecm_contact(cell, dim_x, dim_y, ecm_fiber_type, cell_field):
                     # Paper: secretion rate converted to per-MCS
                     # lambda = 0.05 s^-1 × 36 s/MCS = 1.8 per MCS
                     try:
@@ -291,9 +298,9 @@ class CancerInvasionSteppable(SteppableBasePy):
 
             # Paper: ECM degradation when MMP >= threshold (=1)
             fibers_to_remove = []
-            for cell in self.cell_list_by_type(self.ECMFIBER):
+            for cell in self.cell_list_by_type(ecm_fiber_type):
                 cx, cy = int(cell.xCOM), int(cell.yCOM)
-                if 0 <= cx < self.dim.x and 0 <= cy < self.dim.y:
+                if 0 <= cx < dim_x and 0 <= cy < dim_y:
                     mmp_conc = mmp_field[cx, cy, 0]
                     if mmp_conc >= self.degradation_threshold:
                         # Bolt optimization: Cache xCOM/yCOM properties in list
@@ -311,7 +318,7 @@ class CancerInvasionSteppable(SteppableBasePy):
         except Exception as e:
             print(f"Error in MMP system: {e}")
 
-    def check_ecm_contact(self, cell):
+    def check_ecm_contact(self, cell, dim_x, dim_y, ecm_fiber_type, cell_field):
         try:
             cx, cy = int(cell.xCOM), int(cell.yCOM)
 
@@ -319,17 +326,13 @@ class CancerInvasionSteppable(SteppableBasePy):
             # Expected impact: Removes redundant conditionally evaluated bounds checks inside
             # the frequent ECM contact checks, boosting simulation iteration speed.
             x_min = max(0, cx - 3)
-            x_max = min(self.dim.x, cx + 4)
+            x_max = min(dim_x, cx + 4)
             y_min = max(0, cy - 3)
-            y_max = min(self.dim.y, cy + 4)
-
-            # Bolt optimization: Cache SWIG property before spatial loop
-            # Expected impact: Eliminates redundant evaluations of self.ECMFIBER in nested loops.
-            ecm_fiber_type = self.ECMFIBER
+            y_max = min(dim_y, cy + 4)
 
             for nx in range(x_min, x_max):
                 for ny in range(y_min, y_max):
-                    neighbor = self.cell_field[nx, ny, 0]
+                    neighbor = cell_field[nx, ny, 0]
                     if neighbor and neighbor.type == ecm_fiber_type:
                         return True
             return False
