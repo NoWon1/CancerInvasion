@@ -28,3 +28,6 @@
 ## 2026-10-25 - Cache SWIG properties for helper functions
 **Learning:** Accessing SWIG properties inside helper functions called repeatedly per cell causes unnecessary overhead in CC3D.
 **Action:** Cache SWIG properties in the main step loop and pass them as arguments to helper functions.
+## 2026-10-25 - Cache SWIG properties for helper functions
+**Learning:** Accessing SWIG properties like `self.dim.x` inside helper functions called repeatedly per cell causes unnecessary overhead in CC3D.
+**Action:** Cache SWIG properties in the main step loop and pass them as arguments to helper functions.

@@ -130,7 +130,7 @@ def test_paper_mmp_system_no_exception():
     steppable.mmp_secretor = MagicMock()
 
     # Force secretion path to run
-    steppable.check_ecm_contact = lambda cell: True
+    steppable.check_ecm_contact = lambda cell, dim_x, dim_y, ecm_type, cfield: True
     cancer = MacroscopicCellMock(1, 1)
     steppable.cell_list.append(cancer)
 
@@ -151,7 +151,7 @@ def test_check_ecm_contact_no_exception():
     cell.yCOM = 1
 
     try:
-        result = steppable.check_ecm_contact(cell)
+        result = steppable.check_ecm_contact(cell, steppable.dim.x, steppable.dim.y, steppable.ECMFIBER, steppable.cell_field)
         assert isinstance(result, bool)
     except Exception as e:
         pytest.fail(f"check_ecm_contact raised exception: {e}")
