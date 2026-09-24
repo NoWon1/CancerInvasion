@@ -455,11 +455,14 @@ class ChemotaxisSteppable(SteppableBasePy):
 
             grad_x = grad_y = 0
             if 2 <= cx < dim_x - 2 and 2 <= cy < dim_y - 2:
-                grad_x = (mmp_field[cx + 2, cy, 0] - mmp_field[cx - 2, cy, 0]) / 4.0
-                grad_y = (mmp_field[cx, cy + 2, 0] - mmp_field[cx, cy - 2, 0]) / 4.0
+                # Bolt optimization: Use multiplication instead of division
+                # Expected impact: Faster execution inside a hot loop (computed for every cell every step)
+                grad_x = (mmp_field[cx + 2, cy, 0] - mmp_field[cx - 2, cy, 0]) * 0.25
+                grad_y = (mmp_field[cx, cy + 2, 0] - mmp_field[cx, cy - 2, 0]) * 0.25
 
-            gradient_magnitude = math.sqrt(grad_x * grad_x + grad_y * grad_y)
-            if gradient_magnitude > 0.05:
+            # Bolt optimization: Use squared threshold to avoid expensive math.sqrt()
+            # Expected impact: Eliminates square root computations in a hot loop (0.05^2 = 0.0025).
+            if grad_x * grad_x + grad_y * grad_y > 0.0025:
                 pass
 
         except Exception as e:
