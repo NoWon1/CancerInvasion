@@ -31,3 +31,6 @@
 ## 2026-10-25 - Cache SWIG properties for helper functions
 **Learning:** Accessing SWIG properties like `self.dim.x` inside helper functions called repeatedly per cell causes unnecessary overhead in CC3D.
 **Action:** Cache SWIG properties in the main step loop and pass them as arguments to helper functions.
+## 2026-10-25 - Avoid square roots in hot loops
+**Learning:** Frequent evaluation of Euclidean distances or vector magnitudes using `math.sqrt()` in tightly nested loops (like per-cell chemotaxis calculations in CC3D) incurs measurable performance overhead.
+**Action:** When comparing distances or magnitudes against a constant threshold, square the threshold instead (e.g., `x*x + y*y > threshold*threshold`) to completely eliminate the `math.sqrt()` computation in the hot path. Additionally, replace floating point divisions by constants (e.g., `/ 4.0`) with multiplications (e.g., `* 0.25`).
