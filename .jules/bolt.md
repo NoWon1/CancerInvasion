@@ -34,3 +34,6 @@
 ## 2026-10-25 - Avoid square roots in hot loops
 **Learning:** Frequent evaluation of Euclidean distances or vector magnitudes using `math.sqrt()` in tightly nested loops (like per-cell chemotaxis calculations in CC3D) incurs measurable performance overhead.
 **Action:** When comparing distances or magnitudes against a constant threshold, square the threshold instead (e.g., `x*x + y*y > threshold*threshold`) to completely eliminate the `math.sqrt()` computation in the hot path. Additionally, replace floating point divisions by constants (e.g., `/ 4.0`) with multiplications (e.g., `* 0.25`).
+## 2026-10-26 - Inline conditional expressions over min/max
+**Learning:** In Python hot loops for CompuCell3D simulations, calculating spatial boundaries using built-in `max()` and `min()` functions incurs significant overhead due to function calls.
+**Action:** Replace `max()` and `min()` with inline ternary conditional expressions (e.g., `a if a > b else b`) inside hot loops (like `check_ecm_contact`) to completely avoid the function call overhead.
