@@ -325,10 +325,12 @@ class CancerInvasionSteppable(SteppableBasePy):
             # Bolt optimization: Pre-calculate spatial boundaries prior to loop entry
             # Expected impact: Removes redundant conditionally evaluated bounds checks inside
             # the frequent ECM contact checks, boosting simulation iteration speed.
-            x_min = max(0, cx - 3)
-            x_max = min(dim_x, cx + 4)
-            y_min = max(0, cy - 3)
-            y_max = min(dim_y, cy + 4)
+            # Bolt optimization: Use conditional expressions instead of max/min
+            # Expected impact: Faster evaluation in python compared to max/min function calls.
+            x_min = cx - 3 if cx >= 3 else 0
+            x_max = cx + 4 if cx + 4 <= dim_x else dim_x
+            y_min = cy - 3 if cy >= 3 else 0
+            y_max = cy + 4 if cy + 4 <= dim_y else dim_y
 
             for nx in range(x_min, x_max):
                 for ny in range(y_min, y_max):
