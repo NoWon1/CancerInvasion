@@ -1,6 +1,7 @@
 import sys
 import unittest
 from unittest.mock import MagicMock
+from collections import defaultdict
 
 # Mock cc3d module and dependencies before importing Steppable
 
@@ -26,6 +27,10 @@ class TestCancerInvasionSteppable(unittest.TestCase):
         self.steppable.dim = MagicMock()
         self.steppable.dim.x = 500
         self.steppable.dim.y = 500
+        self.steppable.ECMFIBER = 2  # Assign an arbitrary type ID for ECMFIBER
+
+        # Mock cell field as defaultdict returning None for empty spaces
+        self.steppable.cell_field = defaultdict(lambda: None)
 
     def test_create_simple_fiber_basic(self):
         """Test basic fiber creation within valid boundaries"""
@@ -83,6 +88,49 @@ class TestCancerInvasionSteppable(unittest.TestCase):
         pixels = self.steppable.create_simple_fiber(start_x, start_y, angle)
 
         self.assertEqual(pixels, [])
+
+    def test_check_simple_fiber_contact_no_contact(self):
+        """Test simple fiber contact check with no contact"""
+        cell = MagicMock()
+        cell.xCOM, cell.yCOM = 100.0, 100.0
+
+        self.assertFalse(self.steppable.check_simple_fiber_contact(cell))
+
+    def test_check_simple_fiber_contact_with_contact(self):
+        """Test simple fiber contact check with contact"""
+        cell = MagicMock()
+        cell.xCOM, cell.yCOM = 100.0, 100.0
+
+        # Create a mock fiber cell
+        fiber_cell = MagicMock()
+        fiber_cell.type = self.steppable.ECMFIBER
+
+        # Place it within the neighborhood (dx=3, dy=-2)
+        self.steppable.cell_field[103, 98, 0] = fiber_cell
+
+        self.assertTrue(self.steppable.check_simple_fiber_contact(cell))
+
+    def test_check_simple_fiber_contact_out_of_bounds(self):
+        """Test simple fiber contact check at boundary"""
+        cell = MagicMock()
+        cell.xCOM, cell.yCOM = 0.0, 0.0
+
+        # Negative indices will be skipped by 0 <= nx < self.dim.x
+        # Put a fiber at (1, 1) and make sure it finds it even at the boundary
+        fiber_cell = MagicMock()
+        fiber_cell.type = self.steppable.ECMFIBER
+        self.steppable.cell_field[1, 1, 0] = fiber_cell
+
+        self.assertTrue(self.steppable.check_simple_fiber_contact(cell))
+
+    def test_check_simple_fiber_contact_exception(self):
+        """Test simple fiber contact check handles exceptions"""
+        cell = MagicMock()
+        # Make xCOM throw a ValueError by giving it a string
+        cell.xCOM = "not_a_number"
+        cell.yCOM = 100.0
+
+        self.assertFalse(self.steppable.check_simple_fiber_contact(cell))
 
 
 if __name__ == '__main__':
