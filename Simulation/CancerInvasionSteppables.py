@@ -131,6 +131,7 @@ class CancerInvasionSteppable(SteppableBasePy):
     def create_simple_fiber(self, start_x, start_y, angle):
         """Create simple connected fiber pixels"""
         pixels = []
+        seen = set()
         try:
             dx = math.cos(angle)
             dy = math.sin(angle)
@@ -140,13 +141,16 @@ class CancerInvasionSteppable(SteppableBasePy):
                 y = int(start_y + i * dy)
                 
                 if 50 <= x < (self.dim.x - 50) and 50 <= y < (self.dim.y - 50):
-                    pixels.append((x, y))
+                    if (x, y) not in seen:
+                        pixels.append((x, y))
+                        seen.add((x, y))
                     # Add slight thickness
                     for offset in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                         nx, ny = x + offset[0], y + offset[1]
                         if 50 <= nx < (self.dim.x - 50) and 50 <= ny < (self.dim.y - 50):
-                            if (nx, ny) not in pixels:
+                            if (nx, ny) not in seen:
                                 pixels.append((nx, ny))
+                                seen.add((nx, ny))
                                 
         except Exception as e:
             print(f"Error creating fiber: {e}")
