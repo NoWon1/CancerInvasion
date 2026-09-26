@@ -26,6 +26,11 @@ class TestCancerInvasionSteppable(unittest.TestCase):
         self.steppable.dim = MagicMock()
         self.steppable.dim.x = 500
         self.steppable.dim.y = 500
+        self.steppable.cell_list_by_type = lambda t: [
+            c
+            for c in getattr(self.steppable, 'cell_list', [])
+            if c.type == t
+        ]
 
     def test_create_simple_fiber_basic(self):
         """Test basic fiber creation within valid boundaries"""
