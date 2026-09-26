@@ -84,6 +84,16 @@ class TestCancerInvasionSteppable(unittest.TestCase):
 
         self.assertEqual(pixels, [])
 
+    def test_safe_cell_removal_exception_handling(self):
+        """Test that exceptions during cell removal are handled safely"""
+        cell = MagicMock()
+
+        # Force an exception during pixel iteration
+        self.steppable.get_cell_pixel_list = MagicMock(side_effect=Exception("Mocked error"))
+
+        result = self.steppable.safe_cell_removal(cell)
+
+        self.assertFalse(result)
 
 if __name__ == '__main__':
     unittest.main()
