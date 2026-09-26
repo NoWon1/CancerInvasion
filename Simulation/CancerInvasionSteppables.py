@@ -351,9 +351,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                     if cell.id in self.initial_positions:
                         initial = self.initial_positions[cell.id]
                         final = [cell.xCOM, cell.yCOM]
-                        distance = math.sqrt(
-                            (final[0] - initial[0]) ** 2 + (final[1] - initial[1]) ** 2
-                        )
+                            # Bolt optimization: Use math.hypot for distance calculation
+                            # Expected impact: Faster execution than math.sqrt(dx**2 + dy**2) as it avoids Python-level squaring and addition overhead.
+                        distance = math.hypot(final[0] - initial[0], final[1] - initial[1])
                         translocations.append(distance)
 
                 if translocations:
