@@ -116,18 +116,24 @@ class CancerInvasionSteppable(SteppableBasePy):
             dx = math.cos(angle)
             dy = math.sin(angle)
 
+            # Bolt optimization: Maintain an auxiliary 'seen' set for fast O(1) membership checks
+            # Expected impact: Significantly speeds up ECM fiber initialization by eliminating O(N) list lookups while preserving the list's order and return type.
+            seen = set()
             for i in range(length):
                 x = int(start_x + i * dx)
                 y = int(start_y + i * dy)
 
                 if 25 <= x < 475 and 25 <= y < 475:
-                    pixels.append((x, y))
+                    if (x, y) not in seen:
+                        pixels.append((x, y))
+                        seen.add((x, y))
 
                     for offset in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                         nx, ny = x + offset[0], y + offset[1]
                         if 25 <= nx < 475 and 25 <= ny < 475:
-                            if (nx, ny) not in pixels:
+                            if (nx, ny) not in seen:
                                 pixels.append((nx, ny))
+                                seen.add((nx, ny))
 
         except Exception as e:
             print(f"Error creating fiber: {e}")
@@ -351,9 +357,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                     if cell.id in self.initial_positions:
                         initial = self.initial_positions[cell.id]
                         final = [cell.xCOM, cell.yCOM]
-                        distance = math.sqrt(
-                            (final[0] - initial[0]) ** 2 + (final[1] - initial[1]) ** 2
-                        )
+                        # Bolt optimization: Use math.hypot for exact 2D distance calculation
+                        # Expected impact: Native C implementation of hypot avoids python-level squaring and addition overhead, making it significantly faster than math.sqrt(dx**2 + dy**2).
+                        distance = math.hypot(final[0] - initial[0], final[1] - initial[1])
                         translocations.append(distance)
 
                 if translocations:

@@ -37,3 +37,10 @@
 ## 2026-10-26 - Inline conditional expressions over min/max
 **Learning:** In Python hot loops for CompuCell3D simulations, calculating spatial boundaries using built-in `max()` and `min()` functions incurs significant overhead due to function calls.
 **Action:** Replace `max()` and `min()` with inline ternary conditional expressions (e.g., `a if a > b else b`) inside hot loops (like `check_ecm_contact`) to completely avoid the function call overhead.
+## 2024-11-20 - Fast exact 2D distance calculation
+**Learning:** In Python, when calculating exact 2D Euclidean distances, using `math.hypot(dx, dy)` instead of `math.sqrt(dx**2 + dy**2)` avoids python-level squaring and addition overhead and is natively faster.
+**Action:** Always prefer `math.hypot` for calculating 2D Euclidean distance when the actual value is needed and threshold squaring cannot be used.
+
+## 2024-11-20 - Optimize list membership checks
+**Learning:** To optimize O(N) list membership checks inside hot loops while preserving the list's order and return type, maintaining an auxiliary `seen = set()` collection achieves O(1) lookups.
+**Action:** Use an auxiliary set when repeatedly appending items to a list and checking for duplicates.
