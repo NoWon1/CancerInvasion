@@ -44,3 +44,6 @@
 ## 2024-11-20 - Optimize list membership checks
 **Learning:** To optimize O(N) list membership checks inside hot loops while preserving the list's order and return type, maintaining an auxiliary `seen = set()` collection achieves O(1) lookups.
 **Action:** Use an auxiliary set when repeatedly appending items to a list and checking for duplicates.
+## 2024-11-20 - Fast exact 2D distance calculation
+**Learning:** In Python hot loops (like CompuCell3D grid iterations), replacing the exponentiation operator (`** 2`) with direct multiplication (`dx * dx`) significantly improves performance by avoiding the overhead of dispatching to `pow()`. Additionally, hoisting invariant calculations (e.g., calculating `dx` outside the inner `py` loop) prevents redundant evaluations.
+**Action:** Replace `** 2` with explicit multiplication and hoist loop-invariant math calculations out of nested inner loops.

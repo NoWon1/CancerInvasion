@@ -190,8 +190,13 @@ class CancerInvasionSteppable(SteppableBasePy):
             radius_sq = radius * radius
 
             for px in range(x_min, x_max):
+                # Bolt optimization: Hoist invariant dx calculation out of inner loop
+                # Expected impact: Prevents redundant evaluations of dx*dx for every iteration of the inner py loop, significantly improving performance.
+                dx = px - center_x
+                dx_sq = dx * dx
                 for py in range(y_min, y_max):
-                    if (px - center_x) ** 2 + (py - center_y) ** 2 <= radius_sq:
+                    dy = py - center_y
+                    if dx_sq + dy * dy <= radius_sq:
                         if self.cell_field[px, py, 0] is None:
                             self.cell_field[px, py, 0] = cell
                             pixels_added += 1
