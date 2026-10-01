@@ -44,3 +44,6 @@
 ## 2024-11-20 - Optimize list membership checks
 **Learning:** To optimize O(N) list membership checks inside hot loops while preserving the list's order and return type, maintaining an auxiliary `seen = set()` collection achieves O(1) lookups.
 **Action:** Use an auxiliary set when repeatedly appending items to a list and checking for duplicates.
+## 2026-09-30 - Use tuples instead of lists for coordinate grouping
+**Learning:** In Python hot loops (like cell dynamics calculations in CC3D), repeatedly allocating short-lived lists for coordinates or vectors (e.g., `[cell.xCOM, cell.yCOM]`) creates unnecessary memory overhead and triggers more frequent garbage collection.
+**Action:** Replace temporary lists with tuples (e.g., `(cell.xCOM, cell.yCOM)`) for read-only coordinate and vector grouping in frequently called functions to improve memory efficiency and speed.
