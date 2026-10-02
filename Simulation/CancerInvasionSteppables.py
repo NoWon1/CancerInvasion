@@ -2,6 +2,7 @@ from cc3d.core.PySteppables import *
 import numpy as np
 import random
 import math
+import collections
 
 
 class CancerInvasionSteppable(SteppableBasePy):
@@ -216,7 +217,9 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             for cell in self.cell_list_by_type(self.CELL):
                 self.cell_positions[cell.id] = (cell.xCOM, cell.yCOM)
-                self.cell_velocities[cell.id] = []
+                # Bolt optimization: Use collections.deque with maxlen for O(1) sliding window
+                # Expected impact: Eliminates O(N) memory shifting overhead of list.pop(0) in hot cell dynamics loop.
+                self.cell_velocities[cell.id] = collections.deque(maxlen=self.polarity_memory)
                 self.initial_positions[cell.id] = (cell.xCOM, cell.yCOM)
         except Exception as e:
             print(f"Error in tracking initialization: {e}")
@@ -275,11 +278,10 @@ class CancerInvasionSteppable(SteppableBasePy):
                     )
 
                     if cell_id not in self.cell_velocities:
-                        self.cell_velocities[cell_id] = []
+                        # Bolt optimization: Use collections.deque with maxlen for O(1) sliding window
+                        # Expected impact: Eliminates O(N) memory shifting overhead of list.pop(0) in hot cell dynamics loop.
+                        self.cell_velocities[cell_id] = collections.deque(maxlen=self.polarity_memory)
                     self.cell_velocities[cell_id].append(velocity)
-
-                    if len(self.cell_velocities[cell_id]) > self.polarity_memory:
-                        self.cell_velocities[cell_id].pop(0)
 
                 self.cell_positions[cell_id] = current_pos
 
