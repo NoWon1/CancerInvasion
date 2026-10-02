@@ -182,10 +182,12 @@ class CancerInvasionSteppable(SteppableBasePy):
 
             # Bolt optimization: Pre-calculate min/max boundaries outside the spatial loop
             # Expected impact: Eliminates redundant bounds checking inside tightly nested loops.
-            x_min = max(0, center_x - radius)
-            x_max = min(self.dim.x, center_x + radius + 1)
-            y_min = max(0, center_y - radius)
-            y_max = min(self.dim.y, center_y + radius + 1)
+            # Bolt optimization: Use conditional expressions instead of max/min
+            # Expected impact: Faster evaluation in python compared to max/min function calls, improving initialization speed.
+            x_min = center_x - radius if center_x - radius > 0 else 0
+            x_max = center_x + radius + 1 if center_x + radius + 1 < self.dim.x else self.dim.x
+            y_min = center_y - radius if center_y - radius > 0 else 0
+            y_max = center_y + radius + 1 if center_y + radius + 1 < self.dim.y else self.dim.y
 
             radius_sq = radius * radius
 
@@ -320,7 +322,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                         # Expected impact: Reduce expensive SWIG property evaluations when removing cells later
                         fibers_to_remove.append((cell, cx, cy))
                         # Paper: reduce MMP count by 1 after degradation
-                        mmp_field[cx, cy, 0] = max(0, mmp_conc - 1)
+                        # Bolt optimization: Use conditional expression instead of max()
+                        # Expected impact: Faster evaluation inside the hot loop than function calls.
+                        mmp_field[cx, cy, 0] = mmp_conc - 1 if mmp_conc > 1 else 0
 
             # Remove degraded fibers
             for fiber, cx, cy in fibers_to_remove:
