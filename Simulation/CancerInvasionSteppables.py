@@ -97,8 +97,8 @@ class CancerInvasionSteppable(SteppableBasePy):
                     break
                     
                 # Generate fiber with safety checks
-                start_x = random.randint(100, 399)
-                start_y = random.randint(100, 399)
+                start_x = random.randint(100, max(100, self.dim.x - 101))
+                start_y = random.randint(100, max(100, self.dim.y - 101))
                 angle = random.uniform(0, 2 * math.pi)
                 
                 # Create simple linear fiber
