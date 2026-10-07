@@ -47,3 +47,6 @@
 ## 2026-09-30 - Use tuples instead of lists for coordinate grouping
 **Learning:** In Python hot loops (like cell dynamics calculations in CC3D), repeatedly allocating short-lived lists for coordinates or vectors (e.g., `[cell.xCOM, cell.yCOM]`) creates unnecessary memory overhead and triggers more frequent garbage collection.
 **Action:** Replace temporary lists with tuples (e.g., `(cell.xCOM, cell.yCOM)`) for read-only coordinate and vector grouping in frequently called functions to improve memory efficiency and speed.
+## 2024-11-20 - Cache SWIG properties in hot pixel removal loops
+**Learning:** In CompuCell3D, redundant SWIG property evaluations (like `self.cell_field[px, py, pz]`) per pixel when removing or modifying cells incur significant overhead within hot loops.
+**Action:** Always cache the `self.cell_field` property into a local variable (e.g., `cell_field = self.cell_field`) prior to iterating over a cell's pixel list to minimize SWIG boundary evaluations.

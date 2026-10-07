@@ -235,9 +235,14 @@ class CancerInvasionSteppable(SteppableBasePy):
             # Must materialize the list to avoid invalidating the C++ iterator
             # when modifying the field.
             pixels = [(pt_data.pixel.x, pt_data.pixel.y, pt_data.pixel.z) for pt_data in self.get_cell_pixel_list(cell)]
+
+            # Bolt optimization: Cache self.cell_field in a local variable
+            # Expected impact: Reduces expensive SWIG property evaluations per pixel when removing cells.
+            cell_field = self.cell_field
+
             for px, py, pz in pixels:
-                if self.cell_field[px, py, pz] == cell:
-                    self.cell_field[px, py, pz] = None
+                if cell_field[px, py, pz] == cell:
+                    cell_field[px, py, pz] = None
                     pixels_cleared += 1
             return pixels_cleared > 0
         except Exception as e:
