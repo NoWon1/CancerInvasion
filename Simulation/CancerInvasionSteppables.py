@@ -75,6 +75,12 @@ class CancerInvasionSteppable(SteppableBasePy):
             fibers_created = 0
             max_attempts = self.fiber_count * 2
 
+            # Bolt optimization: Cache SWIG properties before loops
+            # Expected impact: Eliminates redundant SWIG boundary evaluations per pixel during ECM initialization.
+            dim_x = self.dim.x
+            dim_y = self.dim.y
+            cell_field = self.cell_field
+
             for attempt in range(max_attempts):
                 if fibers_created >= self.fiber_count:
                     break
@@ -95,9 +101,9 @@ class CancerInvasionSteppable(SteppableBasePy):
                     pixels_assigned = 0
 
                     for x, y in fiber_pixels:
-                        if 0 <= x < self.dim.x and 0 <= y < self.dim.y:
-                            if self.cell_field[x, y, 0] is None:
-                                self.cell_field[x, y, 0] = fiber_cell
+                        if 0 <= x < dim_x and 0 <= y < dim_y:
+                            if cell_field[x, y, 0] is None:
+                                cell_field[x, y, 0] = fiber_cell
                                 self.fiber_locations.add((x, y))
                                 pixels_assigned += 1
 
@@ -183,14 +189,20 @@ class CancerInvasionSteppable(SteppableBasePy):
             cell = self.new_cell(self.CELL)
             pixels_added = 0
 
+            # Bolt optimization: Cache SWIG properties in local variables
+            # Expected impact: Reduces expensive SWIG property evaluations per pixel when creating cells.
+            dim_x = self.dim.x
+            dim_y = self.dim.y
+            cell_field = self.cell_field
+
             # Bolt optimization: Pre-calculate min/max boundaries outside the spatial loop
             # Expected impact: Eliminates redundant bounds checking inside tightly nested loops.
             # Bolt optimization: Use conditional expressions instead of max/min
             # Expected impact: Faster evaluation in python compared to max/min function calls, improving initialization speed.
             x_min = center_x - radius if center_x - radius > 0 else 0
-            x_max = center_x + radius + 1 if center_x + radius + 1 < self.dim.x else self.dim.x
+            x_max = center_x + radius + 1 if center_x + radius + 1 < dim_x else dim_x
             y_min = center_y - radius if center_y - radius > 0 else 0
-            y_max = center_y + radius + 1 if center_y + radius + 1 < self.dim.y else self.dim.y
+            y_max = center_y + radius + 1 if center_y + radius + 1 < dim_y else dim_y
 
             radius_sq = radius * radius
 
@@ -202,8 +214,8 @@ class CancerInvasionSteppable(SteppableBasePy):
                 for py in range(y_min, y_max):
                     dy = py - center_y
                     if dx_sq + dy * dy <= radius_sq:
-                        if self.cell_field[px, py, 0] is None:
-                            self.cell_field[px, py, 0] = cell
+                        if cell_field[px, py, 0] is None:
+                            cell_field[px, py, 0] = cell
                             pixels_added += 1
 
             if pixels_added >= 20:
