@@ -457,12 +457,13 @@ class MitosisSteppable(MitosisSteppableBase):
     def step(self, mcs):
         cells_to_divide = []
         for cell in self.cell_list_by_type(self.CELL):
-            if cell.volume > self.division_volume:
-                if random.random() < 0.01:
-                    cells_to_divide.append(cell)
-                    # Bolt optimization: Break early once a cell is selected for division
-                    # Expected impact: Avoids unnecessary O(N) volume evaluations and random number generations for remaining cells.
-                    break
+            # Bolt optimization: Sequence conditional checks to evaluate cheap Python built-in random.random() before expensive SWIG property cell.volume
+            # Expected impact: Utilizes short-circuit evaluation to skip unnecessary C++/Python boundary crossings, speeding up the hot loop.
+            if random.random() < 0.01 and cell.volume > self.division_volume:
+                cells_to_divide.append(cell)
+                # Bolt optimization: Break early once a cell is selected for division
+                # Expected impact: Avoids unnecessary O(N) volume evaluations and random number generations for remaining cells.
+                break
 
         for cell in cells_to_divide[:1]:
             self.divide_cell_random_orientation(cell)
