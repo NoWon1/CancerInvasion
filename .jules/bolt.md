@@ -50,3 +50,7 @@
 ## 2024-11-20 - Cache SWIG properties in hot pixel removal loops
 **Learning:** In CompuCell3D, redundant SWIG property evaluations (like `self.cell_field[px, py, pz]`) per pixel when removing or modifying cells incur significant overhead within hot loops.
 **Action:** Always cache the `self.cell_field` property into a local variable (e.g., `cell_field = self.cell_field`) prior to iterating over a cell's pixel list to minimize SWIG boundary evaluations.
+
+## 2024-11-20 - Optimize Dictionary Lookups in Hot Loops
+**Learning:** Checking membership with `in` followed by dictionary indexing (e.g., `if key in d: val = d[key]`) and conditionally checking missing keys (e.g., `if key not in d: d[key] = ...`) inside hot loops incurs redundant hash lookup overhead.
+**Action:** Replace `in` checks with `.get()` (e.g., `val = d.get(key)`) for single lookups, and use `collections.defaultdict` for lazily initializing nested data structures to avoid redundant `if key not in d` conditional checks entirely.
