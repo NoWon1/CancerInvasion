@@ -24,7 +24,9 @@ class CancerInvasionSteppable(SteppableBasePy):
 
         # Tracking variables
         self.cell_positions = {}
-        self.cell_velocities = {}
+        # Bolt optimization: Use collections.defaultdict to avoid explicit key existence checks
+        # Expected impact: Avoids explicit key existence checks in hot loops.
+        self.cell_velocities = collections.defaultdict(lambda: collections.deque(maxlen=self.polarity_memory))
         self.initial_positions = {}
         self.fiber_locations = set()
         self.step_count = 0
@@ -231,9 +233,6 @@ class CancerInvasionSteppable(SteppableBasePy):
         try:
             for cell in self.cell_list_by_type(self.CELL):
                 self.cell_positions[cell.id] = (cell.xCOM, cell.yCOM)
-                # Bolt optimization: Use collections.deque with maxlen for O(1) sliding window
-                # Expected impact: Eliminates O(N) memory shifting overhead of list.pop(0) in hot cell dynamics loop.
-                self.cell_velocities[cell.id] = collections.deque(maxlen=self.polarity_memory)
                 self.initial_positions[cell.id] = (cell.xCOM, cell.yCOM)
         except Exception as e:
             print(f"Error in tracking initialization: {e}")
@@ -289,17 +288,15 @@ class CancerInvasionSteppable(SteppableBasePy):
                 # Expected impact: Reduce redundant and expensive SWIG property evaluations per cell per step.
                 cell_id = cell.id
 
-                if cell_id in self.cell_positions:
-                    prev_pos = self.cell_positions[cell_id]
+                # Bolt optimization: Replace membership check and indexing with a single .get() call
+                # Expected impact: Optimizes dictionary lookups in hot loops.
+                prev_pos = self.cell_positions.get(cell_id)
+                if prev_pos is not None:
                     velocity = (
                         current_pos[0] - prev_pos[0],
                         current_pos[1] - prev_pos[1],
                     )
 
-                    if cell_id not in self.cell_velocities:
-                        # Bolt optimization: Use collections.deque with maxlen for O(1) sliding window
-                        # Expected impact: Eliminates O(N) memory shifting overhead of list.pop(0) in hot cell dynamics loop.
-                        self.cell_velocities[cell_id] = collections.deque(maxlen=self.polarity_memory)
                     self.cell_velocities[cell_id].append(velocity)
 
                 self.cell_positions[cell_id] = current_pos
@@ -386,8 +383,10 @@ class CancerInvasionSteppable(SteppableBasePy):
             if cancer_cells and self.initial_positions:
                 translocations = []
                 for cell in cancer_cells:
-                    if cell.id in self.initial_positions:
-                        initial = self.initial_positions[cell.id]
+                    # Bolt optimization: Replace membership check and indexing with a single .get() call
+                    # Expected impact: Optimizes dictionary lookups.
+                    initial = self.initial_positions.get(cell.id)
+                    if initial is not None:
                         final = (cell.xCOM, cell.yCOM)
                         # Bolt optimization: Use math.hypot for exact 2D distance calculation
                         # Expected impact: Native C implementation of hypot avoids python-level squaring and addition overhead, making it significantly faster than math.sqrt(dx**2 + dy**2).
