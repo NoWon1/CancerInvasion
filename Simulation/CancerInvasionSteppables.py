@@ -359,8 +359,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                 for cell in cancer_cells:
                     if cell.id in self.initial_positions:
                         initial = self.initial_positions[cell.id]
-                        final = [cell.xCOM, cell.yCOM]
-                        distance = math.sqrt((final[0] - initial[0])**2 + (final[1] - initial[1])**2)
+                        distance = math.hypot(cell.xCOM - initial[0], cell.yCOM - initial[1])
                         translocations.append(distance)
                 
                 if translocations:
