@@ -382,6 +382,9 @@ class CancerInvasionSteppable(SteppableBasePy):
 
             if cancer_cells and self.initial_positions:
                 translocations = []
+                # Bolt optimization: Bind frequently accessed module function math.hypot to a local variable outside the loop
+                # Expected impact: Reduces attribute lookup overhead.
+                hypot = math.hypot
                 for cell in cancer_cells:
                     # Bolt optimization: Replace membership check and indexing with a single .get() call
                     # Expected impact: Optimizes dictionary lookups.
@@ -390,7 +393,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                         final = (cell.xCOM, cell.yCOM)
                         # Bolt optimization: Use math.hypot for exact 2D distance calculation
                         # Expected impact: Native C implementation of hypot avoids python-level squaring and addition overhead, making it significantly faster than math.sqrt(dx**2 + dy**2).
-                        distance = math.hypot(final[0] - initial[0], final[1] - initial[1])
+                        distance = hypot(final[0] - initial[0], final[1] - initial[1])
                         translocations.append(distance)
 
                 if translocations:
@@ -425,9 +428,15 @@ class GrowthSteppable(SteppableBasePy):
         dim_x, dim_y = self.dim.x, self.dim.y
         mmp_field = self.field.MMP
 
+        # Bolt optimization: Bind frequently accessed instance methods and properties to local variables outside the loop
+        # Expected impact: Reduces attribute lookup overhead and C++/Python boundary crossing in CompuCell3D hot loops.
+        get_neighbor_data = self.get_cell_neighbor_data_list
+        crowding_threshold = self.crowding_threshold
+        growth_rate = self.growth_rate
+
         for cell in self.cell_list_by_type(cell_type):
             contact_area = 0
-            for neighbor, commonSurfaceArea in self.get_cell_neighbor_data_list(
+            for neighbor, commonSurfaceArea in get_neighbor_data(
                 cell
             ):
                 if neighbor and neighbor.type == cell_type:
@@ -435,17 +444,17 @@ class GrowthSteppable(SteppableBasePy):
                     # Bolt optimization: Break early once crowding threshold is met
                     # Expected impact: Avoids expensive SWIG Python object instantiation
                     # for the remaining neighbors in the C++ list.
-                    if contact_area >= self.crowding_threshold:
+                    if contact_area >= crowding_threshold:
                         break
 
-            if contact_area < self.crowding_threshold:
+            if contact_area < crowding_threshold:
                 cx, cy = int(cell.xCOM), int(cell.yCOM)
                 if 0 <= cx < dim_x and 0 <= cy < dim_y:
                     mmp_conc = mmp_field[cx, cy, 0]
                     growth_boost = 1.0 + (mmp_conc * 0.1)
-                    cell.targetVolume += self.growth_rate * growth_boost
+                    cell.targetVolume += growth_rate * growth_boost
                 else:
-                    cell.targetVolume += self.growth_rate
+                    cell.targetVolume += growth_rate
 
 
 class MitosisSteppable(MitosisSteppableBase):
@@ -470,8 +479,11 @@ class MitosisSteppable(MitosisSteppableBase):
     def update_attributes(self):
         self.parent_cell.targetVolume = 400
         self.clone_parent_2_child()
-        self.child_cell.targetVolume = 400
-        self.child_cell.type = self.CELL
+        # Bolt optimization: Bind frequently accessed SWIG-wrapped property child_cell to a local variable
+        # Expected impact: Reduces C++/Python boundary crossing and attribute lookup overhead.
+        child = self.child_cell
+        child.targetVolume = 400
+        child.type = self.CELL
 
 
 class ChemotaxisSteppable(SteppableBasePy):
