@@ -280,6 +280,11 @@ class CancerInvasionSteppable(SteppableBasePy):
 
     def update_paper_cell_dynamics(self):
         try:
+            # Bolt optimization: Cache dictionaries to local variables
+            # Expected impact: Eliminates redundant attribute lookups (self.cell_positions, self.cell_velocities) inside the hot cell dynamics loop.
+            cell_positions = self.cell_positions
+            cell_velocities = self.cell_velocities
+
             for cell in self.cell_list_by_type(self.CELL):
                 # Bolt optimization: Replace temporary lists with tuples for coordinates and velocities
                 # Expected impact: Eliminates redundant list memory allocations and garbage collection inside the hot cell dynamics loop.
@@ -290,16 +295,16 @@ class CancerInvasionSteppable(SteppableBasePy):
 
                 # Bolt optimization: Replace membership check and indexing with a single .get() call
                 # Expected impact: Optimizes dictionary lookups in hot loops.
-                prev_pos = self.cell_positions.get(cell_id)
+                prev_pos = cell_positions.get(cell_id)
                 if prev_pos is not None:
                     velocity = (
                         current_pos[0] - prev_pos[0],
                         current_pos[1] - prev_pos[1],
                     )
 
-                    self.cell_velocities[cell_id].append(velocity)
+                    cell_velocities[cell_id].append(velocity)
 
-                self.cell_positions[cell_id] = current_pos
+                cell_positions[cell_id] = current_pos
 
         except Exception as e:
             print(f"Error in cell dynamics: {e}")
@@ -414,7 +419,10 @@ class GrowthSteppable(SteppableBasePy):
         self.crowding_threshold = 30
 
     def start(self):
-        for cell in self.cell_list_by_type(self.CELL):
+        # Bolt optimization: Fast typed cell iteration
+        # Expected impact: Reduces C++/Python boundary crossing during large-scale initialization.
+        cell_list = self.cell_list_by_type(self.CELL)
+        for cell in cell_list:
             cell.targetVolume = 400
             cell.lambdaVolume = 1.0
 
@@ -424,10 +432,13 @@ class GrowthSteppable(SteppableBasePy):
         cell_type = self.CELL
         dim_x, dim_y = self.dim.x, self.dim.y
         mmp_field = self.field.MMP
+        crowding_threshold = self.crowding_threshold
+        growth_rate = self.growth_rate
+        get_cell_neighbor_data_list = self.get_cell_neighbor_data_list
 
         for cell in self.cell_list_by_type(cell_type):
             contact_area = 0
-            for neighbor, commonSurfaceArea in self.get_cell_neighbor_data_list(
+            for neighbor, commonSurfaceArea in get_cell_neighbor_data_list(
                 cell
             ):
                 if neighbor and neighbor.type == cell_type:
@@ -435,17 +446,17 @@ class GrowthSteppable(SteppableBasePy):
                     # Bolt optimization: Break early once crowding threshold is met
                     # Expected impact: Avoids expensive SWIG Python object instantiation
                     # for the remaining neighbors in the C++ list.
-                    if contact_area >= self.crowding_threshold:
+                    if contact_area >= crowding_threshold:
                         break
 
-            if contact_area < self.crowding_threshold:
+            if contact_area < crowding_threshold:
                 cx, cy = int(cell.xCOM), int(cell.yCOM)
                 if 0 <= cx < dim_x and 0 <= cy < dim_y:
                     mmp_conc = mmp_field[cx, cy, 0]
                     growth_boost = 1.0 + (mmp_conc * 0.1)
-                    cell.targetVolume += self.growth_rate * growth_boost
+                    cell.targetVolume += growth_rate * growth_boost
                 else:
-                    cell.targetVolume += self.growth_rate
+                    cell.targetVolume += growth_rate
 
 
 class MitosisSteppable(MitosisSteppableBase):
@@ -470,8 +481,11 @@ class MitosisSteppable(MitosisSteppableBase):
     def update_attributes(self):
         self.parent_cell.targetVolume = 400
         self.clone_parent_2_child()
-        self.child_cell.targetVolume = 400
-        self.child_cell.type = self.CELL
+        # Bolt optimization: Cache self.child_cell to a local variable
+        # Expected impact: Reduce redundant and expensive SWIG property evaluations per mitosis event.
+        child = self.child_cell
+        child.targetVolume = 400
+        child.type = self.CELL
 
 
 class ChemotaxisSteppable(SteppableBasePy):
