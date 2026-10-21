@@ -324,13 +324,18 @@ class CancerInvasionSteppable(SteppableBasePy):
             ecm_fiber_type = self.ECMFIBER
             cell_field = self.cell_field
 
+            # Bolt optimization: Bind SWIG instance method to a local variable
+            # Expected impact: Reduces C++/Python boundary crossing and attribute lookup overhead in the hot cell iteration loop.
+            secrete_inside_cell = self.mmp_secretor.secreteInsideCell
+            check_ecm_contact = self.check_ecm_contact
+
             # Paper-based ECM-dependent MMP secretion
             for cell in self.cell_list_by_type(self.CELL):
-                if self.check_ecm_contact(cell, dim_x, dim_y, ecm_fiber_type, cell_field):
+                if check_ecm_contact(cell, dim_x, dim_y, ecm_fiber_type, cell_field):
                     # Paper: secretion rate converted to per-MCS
                     # lambda = 0.05 s^-1 × 36 s/MCS = 1.8 per MCS
                     try:
-                        self.mmp_secretor.secreteInsideCell(cell, 1.8)
+                        secrete_inside_cell(cell, 1.8)
                     except Exception as e:
                         print(f"Secretion error for cell {cell.id}: {e}")
 
