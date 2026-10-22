@@ -505,8 +505,12 @@ class ChemotaxisSteppable(SteppableBasePy):
         dim_x = self.dim.x
         dim_y = self.dim.y
 
+        # Bolt optimization: Bind SWIG instance method to a local variable
+        # Expected impact: Reduces C++/Python boundary crossing and attribute lookup overhead in the hot cell iteration loop.
+        apply_paper_chemotaxis = self.apply_paper_chemotaxis
+
         for cell in self.cell_list_by_type(self.CELL):
-            self.apply_paper_chemotaxis(cell, mmp_field, dim_x, dim_y)
+            apply_paper_chemotaxis(cell, mmp_field, dim_x, dim_y)
 
     def apply_paper_chemotaxis(self, cell, mmp_field, dim_x, dim_y):
         try:
