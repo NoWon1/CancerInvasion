@@ -392,6 +392,9 @@ class CancerInvasionSteppable(SteppableBasePy):
 
             if cancer_cells and self.initial_positions:
                 translocations = []
+                # Bolt optimization: Bind module function to local variable outside the loop
+                # Expected impact: Reduces attribute lookup overhead in the loop.
+                fast_hypot = math.hypot
                 for cell in cancer_cells:
                     # Bolt optimization: Replace membership check and indexing with a single .get() call
                     # Expected impact: Optimizes dictionary lookups.
@@ -400,7 +403,7 @@ class CancerInvasionSteppable(SteppableBasePy):
                         final = (cell.xCOM, cell.yCOM)
                         # Bolt optimization: Use math.hypot for exact 2D distance calculation
                         # Expected impact: Native C implementation of hypot avoids python-level squaring and addition overhead, making it significantly faster than math.sqrt(dx**2 + dy**2).
-                        distance = math.hypot(final[0] - initial[0], final[1] - initial[1])
+                        distance = fast_hypot(final[0] - initial[0], final[1] - initial[1])
                         translocations.append(distance)
 
                 if translocations:
