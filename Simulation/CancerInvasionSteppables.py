@@ -109,13 +109,15 @@ class CancerInvasionSteppable(SteppableBasePy):
                     pixels_assigned = 0
                     
                     for x, y in fiber_pixels:
-                        try:
-                            if self.cell_field[x, y, 0] is None:
-                                self.cell_field[x, y, 0] = fiber_cell
-                                self.fiber_locations.add((x, y))
-                                pixels_assigned += 1
-                        except (IndexError, KeyError):
-                            continue
+                        # SECURITY: Check bounds before SWIG lookup to prevent DoS overhead
+                        if 0 <= x < self.dim.x and 0 <= y < self.dim.y:
+                            try:
+                                if self.cell_field[x, y, 0] is None:
+                                    self.cell_field[x, y, 0] = fiber_cell
+                                    self.fiber_locations.add((x, y))
+                                    pixels_assigned += 1
+                            except (IndexError, KeyError):
+                                continue
                     
                     if pixels_assigned >= 8:
                         fibers_created += 1
