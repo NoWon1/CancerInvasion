@@ -50,3 +50,7 @@
 ## 2024-11-20 - Cache SWIG properties in hot pixel removal loops
 **Learning:** In CompuCell3D, redundant SWIG property evaluations (like `self.cell_field[px, py, pz]`) per pixel when removing or modifying cells incur significant overhead within hot loops.
 **Action:** Always cache the `self.cell_field` property into a local variable (e.g., `cell_field = self.cell_field`) prior to iterating over a cell's pixel list to minimize SWIG boundary evaluations.
+
+## 2026-10-27 - CC3D Steppable Profiling Conclusion
+**Learning:** Simulated profile runs of core loop functions (paper_mmp_system, check_ecm_contact, apply_paper_chemotaxis, update_paper_cell_dynamics) confirmed very low execution times (few milliseconds per 100 MCS loop) for the Python code inside the steppables. No single steppable loop constitutes a real measurable hot path compared to standard CC3D overhead. Therefore, introducing standard Python micro-optimizations (like changing list append methods or dict lookups) yields no measurable real-world performance benefit and introduces noise.
+**Action:** Rely on actual profiling before proposing code modifications. If profiling shows no measurable hotspot in the Python callbacks, conclude the performance optimization task cleanly without creating PRs containing 'security theater' or marginal micro-optimizations.
