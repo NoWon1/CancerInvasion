@@ -357,8 +357,9 @@ class CancerInvasionSteppable(SteppableBasePy):
             # Remove degraded fibers
             for fiber, cx, cy in fibers_to_remove:
                 self.safe_cell_removal(fiber)
-                if (cx, cy) in self.fiber_locations:
-                    self.fiber_locations.remove((cx, cy))
+                # Bolt optimization: Use discard() to avoid redundant set membership check
+                # Expected impact: Eliminates a conditional branch and redundant hash lookup when removing items from a set.
+                self.fiber_locations.discard((cx, cy))
 
         except Exception as e:
             print(f"Error in MMP system: {e}")
